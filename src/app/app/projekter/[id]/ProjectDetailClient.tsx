@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import {
@@ -28,6 +28,8 @@ export default function ProjectDetailClient({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [activeType, setActiveType] = useState<ImageType>("foer");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const latestFoer = useMemo(
@@ -38,25 +40,52 @@ export default function ProjectDetailClient({
   const canDelete =
     project.status === "kladde" || project.status === "afventer_godkendelse";
 
-  async function upload(file: File) {
+  useEffect(() => {
+    return () => {
+      if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    };
+  }, [pendingUrl]);
+
+  function clearPending() {
+    if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    setPendingFile(null);
+    setPendingUrl(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function onPick(file: File | undefined) {
+    if (!file) return;
+    setError("");
+    if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    setPendingFile(file);
+    setPendingUrl(URL.createObjectURL(file));
+  }
+
+  async function confirmUpload() {
+    if (!pendingFile) return;
     setBusy(true);
     setError("");
     try {
       const fd = new FormData();
       fd.append("type", activeType);
-      fd.append("file", file);
+      fd.append("file", pendingFile);
       const data = await api<{ images: Img[] }>(
         "/api/projects/" + project.id + "/images",
-        { method: "POST", body: fd, headers: {} },
+        { method: "POST", body: fd },
       );
       setImages(data.images);
+      clearPending();
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload fejlede");
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
+  }
+
+  function retake() {
+    clearPending();
+    setTimeout(() => fileRef.current?.click(), 50);
   }
 
   async function removeImage(imageId: string) {
@@ -118,6 +147,7 @@ export default function ProjectDetailClient({
               key={t}
               type="button"
               className={"btn " + (activeType === t ? "btn-primary" : "btn-ghost")}
+              disabled={busy || !!pendingFile}
               onClick={() => setActiveType(t)}
             >
               {IMAGE_TYPE_LABELS[t]}
@@ -139,18 +169,51 @@ export default function ProjectDetailClient({
           </div>
         ) : null}
 
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={busy}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void upload(f);
-          }}
-        />
-        <p className="hint">Åbn kamera eller vælg fra rulle.</p>
+        {pendingUrl ? (
+          <div className="stack">
+            <p style={{ margin: 0, fontWeight: 700 }}>Tjek foto ({IMAGE_TYPE_LABELS[activeType]})</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pendingUrl} alt="Preview" style={{ width: "100%", borderRadius: 12 }} />
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy}
+              onClick={() => void confirmUpload()}
+            >
+              {busy ? "Gemmer…" : "Brug foto"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={busy}
+              onClick={retake}
+            >
+              Tag om
+            </button>
+            <p className="hint">Gemmes som kladde på sagen. Send til godkendelse låser senere.</p>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}
+            >
+              Åbn kamera
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={busy}
+              style={{ display: "none" }}
+              onChange={(e) => onPick(e.target.files?.[0])}
+            />
+            <p className="hint">Tag foto → tjek → Brug foto. Det bliver på sagen som kladde.</p>
+          </>
+        )}
       </div>
 
       {IMAGE_TYPES.map((t) => {
@@ -158,7 +221,7 @@ export default function ProjectDetailClient({
         if (!group.length) return null;
         return (
           <div key={t} className="card stack">
-            <strong>{IMAGE_TYPE_LABELS[t]}</strong>
+            <strong>{IMAGE_TYPE_LABELS[t]} (kladde/gemt)</strong>
             <div className="grid-imgs">
               {group.map((img) => (
                 <div key={img.id}>
@@ -183,11 +246,10 @@ export default function ProjectDetailClient({
       })}
 
       {project.status === "kladde" ? (
-        <button className="btn btn-primary" disabled={busy} onClick={() => void submit()}>
+        <button className="btn btn-primary" disabled={busy || !!pendingFile} onClick={() => void submit()}>
           Send til godkendelse
         </button>
       ) : null}
     </div>
   );
 }
-

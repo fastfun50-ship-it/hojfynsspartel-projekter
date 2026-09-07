@@ -52,6 +52,14 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Tom fil" }, { status: 400 });
   }
 
+  if (process.env.VERCEL && !process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      { error: "BLOB_READ_WRITE_TOKEN mangler i Vercel — kan ikke gemme foto." },
+      { status: 503 },
+    );
+  }
+
+  try {
   const imageId = randomUUID();
   const stored = await processAndStoreImage(id, imageId, buf);
   const now = new Date().toISOString();
@@ -65,4 +73,10 @@ export async function POST(req: Request, ctx: Ctx) {
   const images = withPublicUrls(await getProjectImages(id));
   const image = images.find((i) => i.id === imageId);
   return NextResponse.json({ image, images }, { status: 201 });
+  } catch (e) {
+    console.error(e);
+    const detail = String((e as { message?: unknown })?.message ?? e);
+    return NextResponse.json({ error: "Upload fejlede", detail }, { status: 500 });
+  }
 }
+
