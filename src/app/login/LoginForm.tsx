@@ -2,11 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 
 export default function LoginForm() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -22,8 +20,9 @@ export default function LoginForm() {
         method: "POST",
         body: JSON.stringify({ email, password, remember }),
       });
-      router.replace("/app");
-      router.refresh();
+      // Full navigation so session cookie is always sent on first /app load
+      window.location.assign("/app");
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login fejlede");
     } finally {

@@ -4,6 +4,7 @@ export async function api<T = unknown>(
 ): Promise<T> {
   const res = await fetch(url, {
     ...init,
+    credentials: "include",
     headers: {
       ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(init?.headers || {}),
@@ -11,7 +12,8 @@ export async function api<T = unknown>(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data as { error?: string }).error || "Noget gik galt");
+    const err = data as { error?: string; detail?: string };
+    throw new Error(err.error || err.detail || "Noget gik galt");
   }
   return data as T;
 }
