@@ -11,3 +11,8 @@ build
 next-env.d.ts
 data/app.db
 data/uploads
+
+data/
+HANDOFF*.md
+*.tgz
+*.tar.gz
