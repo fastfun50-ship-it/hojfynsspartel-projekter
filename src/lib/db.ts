@@ -3,7 +3,7 @@ import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import initSqlJs, { type Database as SqlJsDatabase } from "sql.js";
 type SqlJsStatic = Awaited<ReturnType<typeof initSqlJs>>;
-import { ensureSeedIfEmpty } from "./seedDemo";
+import { ensureSeedIfEmpty, readCount } from "./seedDemo";
 import { resolveDatabaseUrl, resolveAuthToken, isLibsqlUrl } from "./env";
 
 export type SqlValue = string | number | bigint | boolean | null | Uint8Array;
@@ -70,6 +70,8 @@ const SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_images_project ON images(project_id)`,
 ];
 
+const SQLJS_WASM_CDN = "https://sql.js.org/dist/sql-wasm.wasm";
+
 function isVercel(): boolean {
   return Boolean(process.env.VERCEL);
 }
@@ -79,7 +81,7 @@ function dataDir() {
 }
 
 function localDbPath() {
-  // Vercel serverless FS is read-only except /tmp
+  // Vercel serverless FS is read-only except /tmp — we prefer pure in-memory there.
   if (isVercel()) {
     return path.join("/tmp", "hfs-app.db");
   }
@@ -136,28 +138,43 @@ async function applySchema(db: Db) {
   }
 }
 
+function bufferToArrayBuffer(buf: Buffer): ArrayBuffer {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+}
+
+/** Init sql.js: local wasm → CDN fetch wasmBinary → asm.js (no wasm). */
 async function initSqlJsSafe(): Promise<SqlJsStatic> {
-  const wasmPath = path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
+  // 1) Local wasm file as wasmBinary (avoid locateFile fs quirks)
   try {
+    const wasmPath = path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
     if (fs.existsSync(wasmPath)) {
-      const wasmBinary = fs.readFileSync(wasmPath).buffer;
-      return await initSqlJs({ wasmBinary: wasmBinary as ArrayBuffer });
+      const buf = fs.readFileSync(wasmPath);
+      return await initSqlJs({ wasmBinary: bufferToArrayBuffer(buf) });
     }
   } catch (err) {
-    console.warn("[db] wasmBinary load failed, trying locateFile", err);
+    console.warn("[db] local wasmBinary load failed, trying CDN", err);
   }
 
+  // 2) Fetch wasm from CDN and pass as wasmBinary
+  //    (locateFile with https:// does NOT work in Node — sql.js uses fs.readFile)
   try {
-    return await initSqlJs({
-      locateFile: (file) =>
-        path.join(process.cwd(), "node_modules", "sql.js", "dist", file),
-    });
+    const res = await fetch(SQLJS_WASM_CDN);
+    if (!res.ok) throw new Error(`CDN wasm HTTP ${res.status}`);
+    const wasmBinary = await res.arrayBuffer();
+    return await initSqlJs({ wasmBinary });
   } catch (err) {
-    console.warn("[db] locateFile wasm failed, trying default init", err);
+    console.warn("[db] CDN wasmBinary failed, trying sql-asm.js", err);
   }
 
-  // Last resort: in-memory asm.js / bundled fallback if available
-  return await initSqlJs();
+  // 3) asm.js — pure JS, no wasm file at all (most reliable on serverless)
+  try {
+    const asmMod = await import("sql.js/dist/sql-asm.js");
+    const initAsm = (asmMod.default ?? asmMod) as typeof initSqlJs;
+    return await initAsm();
+  } catch (err) {
+    console.error("[db] sql-asm.js init failed", err);
+    throw err;
+  }
 }
 
 async function createSqlJs(): Promise<Db> {
@@ -169,23 +186,28 @@ async function createSqlJs(): Promise<Db> {
     throw err;
   }
 
-  const file = localDbPath();
-  let persistPath: string | null = file;
+  // On Vercel without Turso: pure in-memory (ephemeral per isolate). Reliable.
+  // Locally: file-backed under data/app.db.
+  const memoryOnly = isVercel();
+  let persistPath: string | null = memoryOnly ? null : localDbPath();
   let database: SqlJsDatabase;
 
-  try {
-    if (!isVercel()) {
-      fs.mkdirSync(dataDir(), { recursive: true });
-    }
-    if (fs.existsSync(file)) {
-      database = new SQL.Database(fs.readFileSync(file));
-    } else {
-      database = new SQL.Database();
-    }
-  } catch (err) {
-    console.warn("[db] cannot use file DB, falling back to in-memory only", err);
+  if (memoryOnly) {
     database = new SQL.Database();
-    persistPath = null;
+  } else {
+    try {
+      fs.mkdirSync(dataDir(), { recursive: true });
+      const file = persistPath!;
+      if (fs.existsSync(file)) {
+        database = new SQL.Database(fs.readFileSync(file));
+      } else {
+        database = new SQL.Database();
+      }
+    } catch (err) {
+      console.warn("[db] cannot use file DB, falling back to in-memory only", err);
+      database = new SQL.Database();
+      persistPath = null;
+    }
   }
 
   const persist = () => {
@@ -226,9 +248,21 @@ export async function getDb(): Promise<Db> {
   if (!globalThis.__hfsDbPromise) {
     globalThis.__hfsDbPromise = usesTurso() ? createTurso() : createSqlJs();
   }
-  return globalThis.__hfsDbPromise;
+  try {
+    return await globalThis.__hfsDbPromise;
+  } catch (err) {
+    // Allow retry after a failed init (e.g. transient CDN)
+    globalThis.__hfsDbPromise = undefined;
+    throw err;
+  }
 }
 
 export function dbMode(): "turso" | "sqljs" {
   return usesTurso() ? "turso" : "sqljs";
+}
+
+/** For /api/health — count users with robust column key handling. */
+export async function countUsers(db: Db): Promise<number> {
+  const row = await db.get<Record<string, unknown>>("SELECT COUNT(*) as c FROM users");
+  return readCount(row);
 }

@@ -11,7 +11,25 @@ async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-/** Minimal demo seed — safe when users table is empty (e.g. Vercel /tmp sql.js). */
+/** Robust COUNT: some drivers return key "COUNT(*)" instead of alias "c". */
+export function readCount(row: Record<string, unknown> | undefined | null): number {
+  if (!row) return 0;
+  if (row.c != null && row.c !== "") {
+    const n = Number(row.c);
+    if (!Number.isNaN(n)) return n;
+  }
+  if (row["COUNT(*)"] != null) {
+    const n = Number(row["COUNT(*)"]);
+    if (!Number.isNaN(n)) return n;
+  }
+  for (const v of Object.values(row)) {
+    const n = Number(v);
+    if (!Number.isNaN(n)) return n;
+  }
+  return 0;
+}
+
+/** Minimal demo seed — safe when users table is empty (e.g. Vercel in-memory sql.js). */
 export async function seedDemoUsers(db: Db): Promise<void> {
   const now = new Date().toISOString();
 
@@ -62,8 +80,8 @@ export async function seedDemoUsers(db: Db): Promise<void> {
 }
 
 export async function ensureSeedIfEmpty(db: Db): Promise<void> {
-  const row = await db.get<{ c: number }>("SELECT COUNT(*) as c FROM users");
-  const count = Number(row?.c ?? 0);
+  const row = await db.get<Record<string, unknown>>("SELECT COUNT(*) as c FROM users");
+  const count = readCount(row);
   if (count === 0) {
     await seedDemoUsers(db);
   }

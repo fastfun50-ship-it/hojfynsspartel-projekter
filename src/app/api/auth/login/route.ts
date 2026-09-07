@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifyLogin } from "@/lib/auth";
 import { assertSessionSecret, getSession } from "@/lib/session";
+import { getDb } from "@/lib/db";
+import { ensureSeedIfEmpty } from "@/lib/seedDemo";
 
 export const runtime = "nodejs";
 
@@ -24,6 +26,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Udfyld email og adgangskode" }, { status: 400 });
     }
 
+    // Ensure DB is ready and demo users exist before verify (Vercel cold start / in-memory)
+    const db = await getDb();
+    await ensureSeedIfEmpty(db);
+
     const user = await verifyLogin(email, password);
     if (!user) {
       return NextResponse.json({ error: "Forkert email eller adgangskode" }, { status: 401 });
@@ -36,6 +42,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, user: { id: user.id, name: user.name, email: user.email, roles: user.roles } });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Login fejlede" }, { status: 500 });
+    const detail = String((e as { message?: unknown })?.message ?? e);
+    return NextResponse.json({ error: "Login fejlede", detail }, { status: 500 });
   }
 }
