@@ -146,10 +146,15 @@ function bufferToArrayBuffer(buf: Buffer): ArrayBuffer {
 async function initSqlJsSafe(): Promise<SqlJsStatic> {
   // 1) Local wasm file as wasmBinary (avoid locateFile fs quirks)
   try {
-    const wasmPath = path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
-    if (fs.existsSync(wasmPath)) {
-      const buf = fs.readFileSync(wasmPath);
-      return await initSqlJs({ wasmBinary: bufferToArrayBuffer(buf) });
+    const candidates = [
+      path.join(process.cwd(), "public", "sql-wasm.wasm"),
+      path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm"),
+    ];
+    for (const wasmPath of candidates) {
+      if (fs.existsSync(wasmPath)) {
+        const buf = fs.readFileSync(wasmPath);
+        return await initSqlJs({ wasmBinary: bufferToArrayBuffer(buf) });
+      }
     }
   } catch (err) {
     console.warn("[db] local wasmBinary load failed, trying CDN", err);
