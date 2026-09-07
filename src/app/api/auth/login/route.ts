@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { verifyLogin } from "@/lib/auth";
-import { getSession } from "@/lib/session";
+import { assertSessionSecret, getSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    try {
+      assertSessionSecret();
+    } catch {
+      return NextResponse.json(
+        { error: "SESSION_SECRET mangler. Se /setup for Vercel-env." },
+        { status: 503 },
+      );
+    }
+
     const body = await req.json();
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");

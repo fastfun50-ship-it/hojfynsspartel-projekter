@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
-import initSqlJs, { type Database as SqlJsDatabase } from "sql.js";
+import initSqlJs, { type Database as SqlJsDatabase, type SqlJsStatic } from "sql.js";
+import { ensureSeedIfEmpty } from "./seedDemo";
+import { resolveDatabaseUrl, resolveAuthToken, isLibsqlUrl } from "./env";
 
 export type SqlValue = string | number | bigint | boolean | null | Uint8Array;
 export type SqlParams = SqlValue[];
@@ -67,17 +69,24 @@ const SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_images_project ON images(project_id)`,
 ];
 
+function isVercel(): boolean {
+  return Boolean(process.env.VERCEL);
+}
+
 function dataDir() {
   return path.join(process.cwd(), "data");
 }
 
 function localDbPath() {
+  // Vercel serverless FS is read-only except /tmp
+  if (isVercel()) {
+    return path.join("/tmp", "hfs-app.db");
+  }
   return path.join(dataDir(), "app.db");
 }
 
 function usesTurso() {
-  const url = process.env.TURSO_DATABASE_URL || "";
-  return url.startsWith("libsql://") || url.startsWith("https://");
+  return isLibsqlUrl(resolveDatabaseUrl());
 }
 
 class LibsqlDb implements Db {
@@ -126,35 +135,85 @@ async function applySchema(db: Db) {
   }
 }
 
-async function createSqlJs(): Promise<Db> {
+async function initSqlJsSafe(): Promise<SqlJsStatic> {
   const wasmPath = path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
-  const wasmBinary = fs.readFileSync(wasmPath).buffer;
-  const SQL = await initSqlJs({ wasmBinary: wasmBinary as ArrayBuffer });
-  fs.mkdirSync(dataDir(), { recursive: true });
-  const file = localDbPath();
-  let database: SqlJsDatabase;
-  if (fs.existsSync(file)) {
-    database = new SQL.Database(fs.readFileSync(file));
-  } else {
-    database = new SQL.Database();
+  try {
+    if (fs.existsSync(wasmPath)) {
+      const wasmBinary = fs.readFileSync(wasmPath).buffer;
+      return await initSqlJs({ wasmBinary: wasmBinary as ArrayBuffer });
+    }
+  } catch (err) {
+    console.warn("[db] wasmBinary load failed, trying locateFile", err);
   }
+
+  try {
+    return await initSqlJs({
+      locateFile: (file) =>
+        path.join(process.cwd(), "node_modules", "sql.js", "dist", file),
+    });
+  } catch (err) {
+    console.warn("[db] locateFile wasm failed, trying default init", err);
+  }
+
+  // Last resort: in-memory asm.js / bundled fallback if available
+  return await initSqlJs();
+}
+
+async function createSqlJs(): Promise<Db> {
+  let SQL: SqlJsStatic;
+  try {
+    SQL = await initSqlJsSafe();
+  } catch (err) {
+    console.error("[db] sql.js init failed entirely", err);
+    throw err;
+  }
+
+  const file = localDbPath();
+  let persistPath: string | null = file;
+  let database: SqlJsDatabase;
+
+  try {
+    if (!isVercel()) {
+      fs.mkdirSync(dataDir(), { recursive: true });
+    }
+    if (fs.existsSync(file)) {
+      database = new SQL.Database(fs.readFileSync(file));
+    } else {
+      database = new SQL.Database();
+    }
+  } catch (err) {
+    console.warn("[db] cannot use file DB, falling back to in-memory only", err);
+    database = new SQL.Database();
+    persistPath = null;
+  }
+
   const persist = () => {
-    const tmp = file + ".tmp";
-    fs.writeFileSync(tmp, Buffer.from(database.export()));
-    fs.renameSync(tmp, file);
+    if (!persistPath) return;
+    try {
+      const tmp = persistPath + ".tmp";
+      fs.writeFileSync(tmp, Buffer.from(database.export()));
+      fs.renameSync(tmp, persistPath);
+    } catch (err) {
+      console.warn("[db] persist failed (read-only FS?)", err);
+      persistPath = null;
+    }
   };
+
   const db = new SqlJsDb(database, persist);
   await applySchema(db);
+  persist();
+  await ensureSeedIfEmpty(db);
   persist();
   return db;
 }
 
 async function createTurso(): Promise<Db> {
-  const url = process.env.TURSO_DATABASE_URL as string;
-  const authToken = process.env.TURSO_AUTH_TOKEN;
+  const url = resolveDatabaseUrl();
+  const authToken = resolveAuthToken() || undefined;
   const client = createClient({ url, authToken });
   const db = new LibsqlDb(client);
   await applySchema(db);
+  await ensureSeedIfEmpty(db);
   return db;
 }
 

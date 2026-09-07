@@ -35,12 +35,24 @@ Safari → Del → Føj til hjemmeskærm. start_url=/app. HTTPS (localhost OK p�
 - src/lib/publishProject.ts — eneste publiceringssti + TODO WordPress-connector
 
 ## Env (.env.example)
-SESSION_SECRET, TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, BLOB_READ_WRITE_TOKEN
+Påkrævet på Vercel (Production + Preview):
+- `SESSION_SECRET` — min. 32 tegn
+- DB URL: `TURSO_DATABASE_URL` **eller** alias `DATABASE_URL` (`libsql://…` / `https://…`)
+- DB token: `TURSO_AUTH_TOKEN` **eller** alias `AUTH_TOKEN`
+- Valgfri: `BLOB_READ_WRITE_TOKEN` (uploads; ellers ephemeral `/tmp`)
+
+Koden accepterer begge navne (se `src/lib/env.ts`). Mangler `SESSION_SECRET` → `/` redirecter til `/setup`.
+
+### Vercel crash-check
+1. `/` 500 → mangler/for kort `SESSION_SECRET`
+2. `/projekter` 500 uden Turso → sæt `TURSO_DATABASE_URL`/`DATABASE_URL` + token (sql.js kun lokalt; på Vercel bruges `/tmp` midlertidigt)
+3. Redeploy efter env-ændring
+4. Kør seed med samme Turso-env
 
 ## GitHub → Vercel (demo)
 1. Opret repo hojfynsspartel-projekter (ikke marketing-repo)
 2. Push kode → Vercel Add Project
-3. Sæt env (SESSION_SECRET + Turso + evt. Blob)
+3. Sæt env: SESSION_SECRET + (TURSO_DATABASE_URL|DATABASE_URL) + (TURSO_AUTH_TOKEN|AUTH_TOKEN) + evt. Blob
 4. Deploy; kør seed med Turso-env
 5. Demo = Vercel-URL only
 
