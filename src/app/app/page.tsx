@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listProjectsForFirm } from "@/lib/projects";
-import { STATUS_LABELS, CATEGORY_LABELS } from "@/lib/constants";
+import { CATEGORY_LABELS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +16,17 @@ export default async function AppHomePage() {
         + Nyt projekt
       </Link>
       {projects.length === 0 ? (
-        <p className="hint">Ingen projekter endnu. Opret et testprojekt.</p>
+        <p className="hint">Ingen projekter endnu. Opret et og tag før-foto.</p>
       ) : (
         <div className="stack">
           {projects.map((p) => (
-            <Link key={p.id} href={"/app/projekter/" + p.id} className="card" style={{ display: "block" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
-                <strong>{p.title}</strong>
-                <span className="badge">{STATUS_LABELS[p.status] || p.status}</span>
-              </div>
+            <Link
+              key={p.id}
+              href={"/app/projekter/" + p.id}
+              className="card"
+              style={{ display: "block" }}
+            >
+              <strong>{p.title}</strong>
               <div className="hint" style={{ marginTop: "0.35rem" }}>
                 {CATEGORY_LABELS[p.category] || p.category}
               </div>

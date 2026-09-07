@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import {
   CATEGORY_LABELS,
   IMAGE_TYPE_LABELS,
-  STATUS_LABELS,
   IMAGE_TYPES,
 } from "@/lib/constants";
 import type { ImageType, Project, ProjectImage } from "@/lib/types";
+import CameraCapture from "@/components/CameraCapture";
 
 type Img = ProjectImage & { url: string };
 
@@ -28,9 +28,9 @@ export default function ProjectDetailClient({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [activeType, setActiveType] = useState<ImageType>("foer");
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const latestFoer = useMemo(
     () => [...images].filter((i) => i.type === "foer").at(-1),
@@ -50,12 +50,11 @@ export default function ProjectDetailClient({
     if (pendingUrl) URL.revokeObjectURL(pendingUrl);
     setPendingFile(null);
     setPendingUrl(null);
-    if (fileRef.current) fileRef.current.value = "";
   }
 
-  function onPick(file: File | undefined) {
-    if (!file) return;
+  function onCapture(file: File) {
     setError("");
+    setCameraOpen(false);
     if (pendingUrl) URL.revokeObjectURL(pendingUrl);
     setPendingFile(file);
     setPendingUrl(URL.createObjectURL(file));
@@ -85,7 +84,7 @@ export default function ProjectDetailClient({
 
   function retake() {
     clearPending();
-    setTimeout(() => fileRef.current?.click(), 50);
+    setCameraOpen(true);
   }
 
   async function removeImage(imageId: string) {
@@ -122,14 +121,13 @@ export default function ProjectDetailClient({
     }
   }
 
+  const showBeforeOverlay = activeType === "efter" && !!latestFoer;
+
   return (
     <div className="stack">
       <div>
         <h1 style={{ margin: "0 0 0.35rem", fontSize: "1.3rem" }}>{project.title}</h1>
-        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-          <span className="badge">{STATUS_LABELS[project.status]}</span>
-          <span className="badge">{CATEGORY_LABELS[project.category]}</span>
-        </div>
+        <div className="hint">{CATEGORY_LABELS[project.category]}</div>
         {project.reject_note ? (
           <div className="error" style={{ marginTop: "0.75rem" }}>
             Afvist: {project.reject_note}
@@ -139,89 +137,83 @@ export default function ProjectDetailClient({
 
       {error ? <div className="error">{error}</div> : null}
 
-      <div className="card stack">
-        <strong>Tilføj foto</strong>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.4rem" }}>
-          {IMAGE_TYPES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={"btn " + (activeType === t ? "btn-primary" : "btn-ghost")}
-              disabled={busy || !!pendingFile}
-              onClick={() => setActiveType(t)}
-            >
-              {IMAGE_TYPE_LABELS[t]}
-            </button>
-          ))}
-        </div>
-
-        {activeType === "efter" ? (
-          <div className="card" style={{ background: "#1a1814" }}>
-            <p className="hint" style={{ marginTop: 0 }}>
-              Stil dig omtrent samme sted og vinkel som før-billedet.
-            </p>
-            {latestFoer ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={latestFoer.url} alt="Seneste før" />
-            ) : (
-              <p className="hint">Ingen før-billeder endnu.</p>
-            )}
-          </div>
-        ) : null}
-
-        {pendingUrl ? (
-          <div className="stack">
-            <p style={{ margin: 0, fontWeight: 700 }}>Tjek foto ({IMAGE_TYPE_LABELS[activeType]})</p>
+      {pendingUrl ? (
+        <div className="stack review-panel">
+          <p style={{ margin: 0, fontWeight: 700, fontSize: "1.1rem" }}>
+            Tjek {IMAGE_TYPE_LABELS[activeType]}
+          </p>
+          <div className="compare-frame">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={pendingUrl} alt="Preview" style={{ width: "100%", borderRadius: 12 }} />
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={busy}
-              onClick={() => void confirmUpload()}
-            >
-              {busy ? "Gemmer…" : "Brug foto"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              disabled={busy}
-              onClick={retake}
-            >
-              Tag om
-            </button>
-            <p className="hint">Gemmes som kladde på sagen. Send til godkendelse låser senere.</p>
+            <img src={pendingUrl} alt="Nyt foto" className="compare-base" />
+            {showBeforeOverlay ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={latestFoer!.url}
+                alt="Før som overlay"
+                className="compare-overlay"
+              />
+            ) : null}
           </div>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={busy}
-              onClick={() => fileRef.current?.click()}
-            >
-              Åbn kamera
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              disabled={busy}
-              style={{ display: "none" }}
-              onChange={(e) => onPick(e.target.files?.[0])}
-            />
-            <p className="hint">Tag foto → tjek → Brug foto. Det bliver på sagen som kladde.</p>
-          </>
-        )}
-      </div>
+          {showBeforeOverlay ? (
+            <p className="hint" style={{ margin: 0 }}>
+              Før ligger som overlay oven på efter — tjek vinkel.
+            </p>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-primary btn-xl"
+            disabled={busy}
+            onClick={() => void confirmUpload()}
+          >
+            {busy ? "Gemmer…" : "Gem"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-xl"
+            disabled={busy}
+            onClick={retake}
+          >
+            Tag om
+          </button>
+        </div>
+      ) : (
+        <div className="card stack">
+          <strong>Tag foto</strong>
+          <div className="type-tabs">
+            {IMAGE_TYPES.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={
+                  "btn " + (activeType === t ? "btn-primary" : "btn-ghost")
+                }
+                disabled={busy}
+                onClick={() => setActiveType(t)}
+              >
+                {IMAGE_TYPE_LABELS[t]}
+              </button>
+            ))}
+          </div>
+          {activeType === "efter" && !latestFoer ? (
+            <p className="hint">Tag et før-foto først — så kan du lægge det over efter.</p>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-primary btn-xl"
+            disabled={busy}
+            onClick={() => setCameraOpen(true)}
+          >
+            Åbn kamera — {IMAGE_TYPE_LABELS[activeType]}
+          </button>
+        </div>
+      )}
 
       {IMAGE_TYPES.map((t) => {
         const group = images.filter((i) => i.type === t);
         if (!group.length) return null;
         return (
           <div key={t} className="card stack">
-            <strong>{IMAGE_TYPE_LABELS[t]} (kladde/gemt)</strong>
+            <strong>{IMAGE_TYPE_LABELS[t]}</strong>
             <div className="grid-imgs">
               {group.map((img) => (
                 <div key={img.id}>
@@ -245,11 +237,23 @@ export default function ProjectDetailClient({
         );
       })}
 
-      {project.status === "kladde" ? (
-        <button className="btn btn-primary" disabled={busy || !!pendingFile} onClick={() => void submit()}>
+      {project.status === "kladde" && !pendingFile ? (
+        <button
+          className="btn btn-primary btn-xl"
+          disabled={busy}
+          onClick={() => void submit()}
+        >
           Send til godkendelse
         </button>
       ) : null}
+
+      <CameraCapture
+        open={cameraOpen}
+        title={IMAGE_TYPE_LABELS[activeType]}
+        overlayUrl={showBeforeOverlay ? latestFoer!.url : null}
+        onCapture={onCapture}
+        onClose={() => setCameraOpen(false)}
+      />
     </div>
   );
 }
