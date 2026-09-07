@@ -32,7 +32,7 @@ export async function POST(req: Request, ctx: Ctx) {
   const project = await getProject(id);
   if (!project) return NextResponse.json({ error: "Ikke fundet" }, { status: 404 });
 
-  if (!["kladde", "afventer_godkendelse", "godkendt"].includes(project.status)) {
+  if (!["kladde", "afventer_godkendelse", "godkendt", "publiceret"].includes(project.status)) {
     return NextResponse.json({ error: "Kan ikke tilføje fotos i denne status" }, { status: 400 });
   }
 

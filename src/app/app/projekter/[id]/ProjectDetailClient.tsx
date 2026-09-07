@@ -37,8 +37,24 @@ export default function ProjectDetailClient({
     [images],
   );
 
+  /** Før/efter newer than last publish → mester must re-submit (gate stays). */
+  const needsSiteUpdate = useMemo(() => {
+    if (project.status !== "publiceret" || !project.published_at) return false;
+    const publishedMs = Date.parse(project.published_at);
+    if (Number.isNaN(publishedMs)) return false;
+    return images.some((img) => {
+      if (img.type !== "foer" && img.type !== "efter") return false;
+      const createdMs = Date.parse(img.created_at);
+      return !Number.isNaN(createdMs) && createdMs > publishedMs;
+    });
+  }, [project.status, project.published_at, images]);
+
   const canDelete =
     project.status === "kladde" || project.status === "afventer_godkendelse";
+
+  const showSendCta = project.status === "kladde" && !pendingFile;
+  const showUpdateCta = needsSiteUpdate && !pendingFile;
+  const showCtaBar = showSendCta || showUpdateCta;
 
   useEffect(() => {
     return () => {
@@ -124,10 +140,15 @@ export default function ProjectDetailClient({
   const showBeforeOverlay = activeType === "efter" && !!latestFoer;
 
   return (
-    <div className="stack">
+    <div className={"stack" + (showCtaBar ? " has-mester-cta" : "")}>
       <div>
         <h1 style={{ margin: "0 0 0.35rem", fontSize: "1.3rem" }}>{project.title}</h1>
         <div className="hint">{CATEGORY_LABELS[project.category]}</div>
+        {project.status === "afventer_godkendelse" ? (
+          <p className="hint" style={{ margin: "0.5rem 0 0" }}>
+            Sendt — afventer godkendelse.
+          </p>
+        ) : null}
         {project.reject_note ? (
           <div className="error" style={{ marginTop: "0.75rem" }}>
             Afvist: {project.reject_note}
@@ -237,14 +258,41 @@ export default function ProjectDetailClient({
         );
       })}
 
-      {project.status === "kladde" && !pendingFile ? (
-        <button
-          className="btn btn-primary btn-xl"
-          disabled={busy}
-          onClick={() => void submit()}
-        >
-          Send til godkendelse
-        </button>
+      {showCtaBar ? (
+        <div className="mester-cta" role="region" aria-label="Send projekt">
+          {showSendCta ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-xl"
+              disabled={busy}
+              onClick={() => void submit()}
+            >
+              <span className="mester-cta-label">
+                <span className="mester-cta-title">
+                  {busy ? "Sender…" : "Send til godkendelse"}
+                </span>
+                <span className="mester-cta-sub">Læg på siden</span>
+              </span>
+            </button>
+          ) : null}
+          {showUpdateCta ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-xl"
+              disabled={busy}
+              onClick={() => void submit()}
+            >
+              <span className="mester-cta-label">
+                <span className="mester-cta-title">
+                  {busy ? "Sender…" : "Opdatér på siden"}
+                </span>
+                <span className="mester-cta-sub">
+                  Sendes til godkendelse igen
+                </span>
+              </span>
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <CameraCapture
