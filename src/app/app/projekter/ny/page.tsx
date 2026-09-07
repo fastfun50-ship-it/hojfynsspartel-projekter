@@ -1,12 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import { CATEGORIES, CATEGORY_LABELS, DEFAULT_PROJECT_TITLE } from "@/lib/constants";
 
 export default function NewProjectPage() {
-  const router = useRouter();
   const [title, setTitle] = useState(DEFAULT_PROJECT_TITLE);
   const [category, setCategory] = useState("facade");
   const [note, setNote] = useState("");
@@ -22,8 +20,9 @@ export default function NewProjectPage() {
         method: "POST",
         body: JSON.stringify({ title, category, note }),
       });
-      router.replace("/app/projekter/" + data.project.id);
-      router.refresh();
+      // Hard navigation so the detail page hits a fresh request (avoids soft-nav
+      // caching / isolate mismatch after create on serverless).
+      window.location.assign("/app/projekter/" + data.project.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke oprette");
       setLoading(false);

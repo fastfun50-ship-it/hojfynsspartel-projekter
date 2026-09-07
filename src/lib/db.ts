@@ -1,10 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
+import { put, get } from "@vercel/blob";
 import initSqlJs, { type Database as SqlJsDatabase } from "sql.js";
 type SqlJsStatic = Awaited<ReturnType<typeof initSqlJs>>;
 import { ensureSeedIfEmpty, readCount } from "./seedDemo";
-import { resolveDatabaseUrl, resolveAuthToken, isLibsqlUrl } from "./env";
+import {
+  resolveDatabaseUrl,
+  resolveAuthToken,
+  isLibsqlUrl,
+  hasBlobToken,
+} from "./env";
 
 export type SqlValue = string | number | bigint | boolean | null | Uint8Array;
 export type SqlParams = SqlValue[];
@@ -71,6 +77,8 @@ const SCHEMA_STATEMENTS = [
 ];
 
 const SQLJS_WASM_CDN = "https://sql.js.org/dist/sql-wasm.wasm";
+/** Single shared sql.js DB object in Vercel Blob (when Turso is absent). */
+const BLOB_DB_KEY = "hfs-app-db.bin";
 
 function isVercel(): boolean {
   return Boolean(process.env.VERCEL);
@@ -81,7 +89,6 @@ function dataDir() {
 }
 
 function localDbPath() {
-  // Vercel serverless FS is read-only except /tmp — we prefer pure in-memory there.
   if (isVercel()) {
     return path.join("/tmp", "hfs-app.db");
   }
@@ -90,6 +97,10 @@ function localDbPath() {
 
 function usesTurso() {
   return isLibsqlUrl(resolveDatabaseUrl());
+}
+
+function usesBlobDb(): boolean {
+  return !usesTurso() && hasBlobToken();
 }
 
 class LibsqlDb implements Db {
@@ -108,10 +119,24 @@ class LibsqlDb implements Db {
 }
 
 class SqlJsDb implements Db {
+  /** Promise chain serializes mutating run()+persist (avoids corrupt concurrent exports). */
+  private writeChain: Promise<void> = Promise.resolve();
+
   constructor(
     private database: SqlJsDatabase,
-    private persist: () => void,
+    private persistAsync: () => Promise<void>,
   ) {}
+
+  private enqueueWrite(fn: () => Promise<void>): Promise<void> {
+    const next = this.writeChain.then(fn, fn);
+    // Keep chain alive even if one write fails
+    this.writeChain = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  }
+
   async all<T>(sql: string, params: SqlParams = []): Promise<T[]> {
     const stmt = this.database.prepare(sql);
     if (params.length) stmt.bind(params as never);
@@ -127,8 +152,10 @@ class SqlJsDb implements Db {
     return rows[0];
   }
   async run(sql: string, params: SqlParams = []): Promise<void> {
-    this.database.run(sql, params as never);
-    this.persist();
+    await this.enqueueWrite(async () => {
+      this.database.run(sql, params as never);
+      await this.persistAsync();
+    });
   }
 }
 
@@ -140,6 +167,32 @@ async function applySchema(db: Db) {
 
 function bufferToArrayBuffer(buf: Buffer): ArrayBuffer {
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+}
+
+async function loadDbFromBlob(): Promise<Uint8Array | null> {
+  try {
+    const result = await get(BLOB_DB_KEY, {
+      access: "private",
+      useCache: false,
+    });
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      return null;
+    }
+    const ab = await new Response(result.stream).arrayBuffer();
+    return new Uint8Array(ab);
+  } catch (err) {
+    console.warn("[db] blob load failed (missing or error)", err);
+    return null;
+  }
+}
+
+async function saveDbToBlob(data: Uint8Array): Promise<void> {
+  await put(BLOB_DB_KEY, Buffer.from(data), {
+    access: "private",
+    contentType: "application/octet-stream",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
 }
 
 /** Init sql.js: local wasm → CDN fetch wasmBinary → asm.js (no wasm). */
@@ -161,7 +214,6 @@ async function initSqlJsSafe(): Promise<SqlJsStatic> {
   }
 
   // 2) Fetch wasm from CDN and pass as wasmBinary
-  //    (locateFile with https:// does NOT work in Node — sql.js uses fs.readFile)
   try {
     const res = await fetch(SQLJS_WASM_CDN);
     if (!res.ok) throw new Error(`CDN wasm HTTP ${res.status}`);
@@ -191,20 +243,25 @@ async function createSqlJs(): Promise<Db> {
     throw err;
   }
 
-  // On Vercel without Turso: pure in-memory (ephemeral per isolate). Reliable.
-  // Locally: file-backed under data/app.db.
-  const memoryOnly = isVercel();
-  let persistPath: string | null = memoryOnly ? null : localDbPath();
+  const blobMode = usesBlobDb();
+  // Local: file under data/app.db. Vercel+Blob: load/save via Blob. Else: ephemeral memory.
+  let persistPath: string | null = null;
   let database: SqlJsDatabase;
 
-  if (memoryOnly) {
+  if (blobMode) {
+    const existing = await loadDbFromBlob();
+    database = existing
+      ? new SQL.Database(existing)
+      : new SQL.Database();
+  } else if (isVercel()) {
+    // No Turso, no Blob → ephemeral per isolate (create→detail will 404 across isolates)
     database = new SQL.Database();
   } else {
     try {
       fs.mkdirSync(dataDir(), { recursive: true });
-      const file = persistPath!;
-      if (fs.existsSync(file)) {
-        database = new SQL.Database(fs.readFileSync(file));
+      persistPath = localDbPath();
+      if (fs.existsSync(persistPath)) {
+        database = new SQL.Database(fs.readFileSync(persistPath));
       } else {
         database = new SQL.Database();
       }
@@ -215,7 +272,16 @@ async function createSqlJs(): Promise<Db> {
     }
   }
 
-  const persist = () => {
+  const persistAsync = async () => {
+    if (blobMode) {
+      try {
+        await saveDbToBlob(database.export());
+      } catch (err) {
+        console.warn("[db] blob persist failed", err);
+        throw err;
+      }
+      return;
+    }
     if (!persistPath) return;
     try {
       const tmp = persistPath + ".tmp";
@@ -227,11 +293,9 @@ async function createSqlJs(): Promise<Db> {
     }
   };
 
-  const db = new SqlJsDb(database, persist);
+  const db = new SqlJsDb(database, persistAsync);
   await applySchema(db);
-  persist();
   await ensureSeedIfEmpty(db);
-  persist();
   return db;
 }
 
@@ -256,14 +320,21 @@ export async function getDb(): Promise<Db> {
   try {
     return await globalThis.__hfsDbPromise;
   } catch (err) {
-    // Allow retry after a failed init (e.g. transient CDN)
+    // Allow retry after a failed init (e.g. transient CDN / Blob)
     globalThis.__hfsDbPromise = undefined;
     throw err;
   }
 }
 
-export function dbMode(): "turso" | "sqljs" {
-  return usesTurso() ? "turso" : "sqljs";
+export function dbMode(): "turso" | "sqljs-blob" | "sqljs" {
+  if (usesTurso()) return "turso";
+  if (usesBlobDb()) return "sqljs-blob";
+  return "sqljs";
+}
+
+/** True when Vercel has neither Turso nor Blob — data is isolate-ephemeral. */
+export function isEphemeralDb(): boolean {
+  return isVercel() && !usesTurso() && !hasBlobToken();
 }
 
 /** For /api/health — count users with robust column key handling. */

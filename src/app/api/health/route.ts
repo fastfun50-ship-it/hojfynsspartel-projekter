@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbMode, getDb, countUsers } from "@/lib/db";
-import { resolveDatabaseUrl } from "@/lib/env";
+import { resolveDatabaseUrl, hasBlobToken } from "@/lib/env";
 import { hasSessionSecret } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -26,6 +26,7 @@ export async function GET() {
     dbMode: mode,
     hasSessionSecret: hasSessionSecret(),
     hasDbUrl,
+    hasBlobToken: hasBlobToken(),
     userCount,
     ...(detail ? { detail } : {}),
   });

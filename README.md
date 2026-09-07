@@ -9,8 +9,9 @@ Mappe: /workspace/hfs-foto-pwa · GitHub: https://github.com/fastfun50-ship-it/h
 ## Stack
 - Next.js 15 App Router + TypeScript
 - DB: Turso/libsql på Vercel (TURSO_* eller DATABASE_URL + AUTH_TOKEN); lokalt sql.js → data/app.db
-- Vercel uden Turso: midlertidig sql.js i `/tmp/hfs-app.db` + auto-seed (sæt Turso for durable demo)
-- Billeder: data/uploads/{projectId}/ lokalt; valgfrit Vercel Blob
+- Vercel uden Turso: sæt `BLOB_READ_WRITE_TOKEN` — hele sql.js-DB gemmes i ét Vercel Blob-objekt (`hfs-app-db.bin`) efter hver mutation
+- Vercel uden Turso **og** uden Blob: midlertidig sql.js pr. isolate (opret→detalje fejler; POST /api/projects → 503)
+- Billeder: data/uploads/{projectId}/ lokalt; Vercel Blob når token er sat
 - sharp, iron-session, bcryptjs
 - PWA: public/manifest.webmanifest + public/sw.js
 
@@ -38,18 +39,18 @@ Safari → Del → Føj til hjemmeskærm. start_url=/app. HTTPS (localhost OK p�
 
 ## Env (.env.example)
 Påkrævet på Vercel (Production + Preview):
-- `SESSION_SECRET` — min. 32 tegn
-- DB URL: `TURSO_DATABASE_URL` **eller** alias `DATABASE_URL` (`libsql://…` / `https://…`)
-- DB token: `TURSO_AUTH_TOKEN` **eller** alias `AUTH_TOKEN`
-- Valgfri: `BLOB_READ_WRITE_TOKEN` (uploads; ellers ephemeral `/tmp`)
+- `SESSION_SECRET` — min. 32 tegn (login/cookies)
+- **Durable storage (vælg mindst én)** — `SESSION_SECRET` alene er **ikke** nok til create→detail:
+  - Turso (anbefalet): `TURSO_DATABASE_URL` **eller** `DATABASE_URL` + `TURSO_AUTH_TOKEN` **eller** `AUTH_TOKEN`
+  - **eller** Vercel Blob: `BLOB_READ_WRITE_TOKEN` (Storage → Blob) — deler sql.js-DB på tværs af isolates
 
-Koden accepterer begge navne (se `src/lib/env.ts`). Mangler `SESSION_SECRET` → `/` redirecter til `/setup`.
+Koden accepterer begge Turso-navne (se `src/lib/env.ts`). Mangler `SESSION_SECRET` → `/` redirecter til `/setup`.
 
 ### Vercel crash-check
 1. `/` 500 → mangler/for kort `SESSION_SECRET`
-2. `/projekter` 500 uden Turso → sæt `TURSO_DATABASE_URL`/`DATABASE_URL` + token (sql.js kun lokalt; på Vercel bruges `/tmp` midlertidigt)
+2. Opret projekt → 404 på detalje / POST 503 → mangler Turso **og** Blob (ephemeral sql.js)
 3. Redeploy efter env-ændring
-4. Kør seed med samme Turso-env
+4. Kør seed med samme Turso-env (hvis Turso)
 
 ## GitHub → Vercel (demo) — eksakte klik
 1. Opret repo hojfynsspartel-projekter (ikke marketing-repo)
@@ -58,9 +59,8 @@ Koden accepterer begge navne (se `src/lib/env.ts`). Mangler `SESSION_SECRET` →
 4. Klik **Settings** → **Environment Variables**
 5. Tilføj (Production + Preview):
    - `SESSION_SECRET` (≥32 tilfældige tegn)
-   - `TURSO_DATABASE_URL` **eller** `DATABASE_URL`
-   - `TURSO_AUTH_TOKEN` **eller** `AUTH_TOKEN`
-   - Valgfrit: `BLOB_READ_WRITE_TOKEN`
+   - **Enten** Turso: `TURSO_DATABASE_URL` / `DATABASE_URL` + `TURSO_AUTH_TOKEN` / `AUTH_TOKEN`
+   - **Eller** Blob: Storage → Blob → kopier `BLOB_READ_WRITE_TOKEN`
 6. Gem → **Deployments** → … på seneste → **Redeploy**
 7. (Valgfrit) seed med samme DB-env: `TURSO_*=… bun run seed`
 8. Hvis env mangler: åbn `/setup`. Demo = Vercel-URL only

@@ -3,6 +3,8 @@ export type EnvStatus = {
   missing: string[];
   onVercel: boolean;
   hasTurso: boolean;
+  hasBlobToken: boolean;
+  hasDurableStorage: boolean;
   hasSessionSecret: boolean;
 };
 
@@ -13,6 +15,7 @@ export const REQUIRED_ENV_KEYS = [
   "TURSO_AUTH_TOKEN",
 ] as const;
 
+/** Blob can substitute Turso for durable sql.js on Vercel. */
 export const OPTIONAL_ENV_KEYS = ["BLOB_READ_WRITE_TOKEN"] as const;
 
 /** Prefer TURSO_DATABASE_URL; fall back to DATABASE_URL. */
@@ -37,6 +40,18 @@ export function isLibsqlUrl(url: string): boolean {
   return url.startsWith("libsql://") || url.startsWith("https://");
 }
 
+export function hasBlobToken(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
+}
+
+/** Turso preferred; Vercel Blob backs sql.js for durable demo without Turso. */
+export function hasDurableStorage(): boolean {
+  const dbUrl = resolveDatabaseUrl();
+  const authToken = resolveAuthToken();
+  const hasTurso = isLibsqlUrl(dbUrl) && Boolean(authToken);
+  return hasTurso || hasBlobToken();
+}
+
 export function getEnvStatus(): EnvStatus {
   const onVercel = Boolean(process.env.VERCEL);
   const sessionSecret = process.env.SESSION_SECRET || "";
@@ -44,20 +59,27 @@ export function getEnvStatus(): EnvStatus {
   const dbUrl = resolveDatabaseUrl();
   const authToken = resolveAuthToken();
   const hasTurso = isLibsqlUrl(dbUrl) && Boolean(authToken);
+  const blob = hasBlobToken();
+  const durable = hasTurso || blob;
 
   const missing: string[] = [];
   if (!hasSessionSecret) missing.push("SESSION_SECRET");
-  // On Vercel, Turso/libsql is strongly recommended (listed for /setup UI).
-  if (onVercel && !isLibsqlUrl(dbUrl)) {
-    missing.push("TURSO_DATABASE_URL (eller DATABASE_URL)");
-  }
-  if (onVercel && !authToken) {
-    missing.push("TURSO_AUTH_TOKEN (eller AUTH_TOKEN)");
+  // On Vercel, durable storage (Turso OR Blob) is required for create→detail.
+  if (onVercel && !durable) {
+    missing.push("TURSO_DATABASE_URL / DATABASE_URL + token — eller BLOB_READ_WRITE_TOKEN");
   }
 
   // Production-safe minimum: SESSION_SECRET so pages/login do not crash.
-  // Missing Turso → ephemeral /tmp sql.js; still "ok" enough to render.
+  // Missing durable storage → ephemeral sql.js; still "ok" enough to render.
   const ok = hasSessionSecret;
 
-  return { ok, missing, onVercel, hasTurso, hasSessionSecret };
+  return {
+    ok,
+    missing,
+    onVercel,
+    hasTurso,
+    hasBlobToken: blob,
+    hasDurableStorage: durable,
+    hasSessionSecret,
+  };
 }

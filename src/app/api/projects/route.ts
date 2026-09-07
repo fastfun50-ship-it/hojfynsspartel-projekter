@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { requireUser } from "@/lib/session";
-import { getDb } from "@/lib/db";
+import { getDb, isEphemeralDb } from "@/lib/db";
 import { FIRMA_ID, DEFAULT_PROJECT_TITLE, hasRole } from "@/lib/constants";
 import { listProjectsForFirm } from "@/lib/projects";
 import type { Category } from "@/lib/types";
@@ -23,6 +23,16 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Ikke logget ind" }, { status: 401 });
   if (!hasRole(user.roles, "mester") && !hasRole(user.roles, "admin")) {
     return NextResponse.json({ error: "Ingen adgang" }, { status: 403 });
+  }
+
+  if (isEphemeralDb()) {
+    return NextResponse.json(
+      {
+        error:
+          "Sæt DATABASE_URL (Turso) eller BLOB_READ_WRITE_TOKEN i Vercel — ellers forsvinder data mellem requests.",
+      },
+      { status: 503 },
+    );
   }
 
   const body = await req.json().catch(() => ({}));
