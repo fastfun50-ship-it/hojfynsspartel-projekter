@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
-import initSqlJs, { type Database as SqlJsDatabase, type SqlJsStatic } from "sql.js";
+import initSqlJs, { type Database as SqlJsDatabase } from "sql.js";
+type SqlJsStatic = Awaited<ReturnType<typeof initSqlJs>>;
 import { ensureSeedIfEmpty } from "./seedDemo";
 import { resolveDatabaseUrl, resolveAuthToken, isLibsqlUrl } from "./env";
 

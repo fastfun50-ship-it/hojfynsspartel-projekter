@@ -1,9 +1,17 @@
 import { randomUUID } from "node:crypto";
+import bcrypt from "bcryptjs";
 import type { Db } from "./db";
-import { hashPassword, rolesToJson } from "./auth";
 import { FIRMA_ID, FIRMA_NAME } from "./constants";
 
-/** Minimal demo seed — safe to call when users table is empty (e.g. Vercel /tmp sql.js). */
+function rolesToJson(roles: string[]): string {
+  return JSON.stringify(roles);
+}
+
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+/** Minimal demo seed — safe when users table is empty (e.g. Vercel /tmp sql.js). */
 export async function seedDemoUsers(db: Db): Promise<void> {
   const now = new Date().toISOString();
 

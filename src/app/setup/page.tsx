@@ -5,9 +5,15 @@ export const dynamic = "force-dynamic";
 
 const ENV_HELP: Record<string, string> = {
   SESSION_SECRET: "Mindst 32 tegn. Bruges til iron-session cookies.",
-  TURSO_DATABASE_URL: "libsql://… eller https://… (Turso database).",
-  TURSO_AUTH_TOKEN: "Auth-token fra Turso dashboard.",
+  TURSO_DATABASE_URL: "libsql://… (preferér) — alias: DATABASE_URL.",
+  TURSO_AUTH_TOKEN: "Auth-token (preferér) — alias: AUTH_TOKEN.",
   BLOB_READ_WRITE_TOKEN: "Valgfri — Vercel Blob til billeder.",
+};
+
+const ENV_LABEL: Record<string, string> = {
+  SESSION_SECRET: "SESSION_SECRET",
+  TURSO_DATABASE_URL: "TURSO_DATABASE_URL (eller DATABASE_URL)",
+  TURSO_AUTH_TOKEN: "TURSO_AUTH_TOKEN (eller AUTH_TOKEN)",
 };
 
 export default function SetupPage() {
@@ -43,12 +49,12 @@ export default function SetupPage() {
               )}
             </li>
             <li>
-              Turso:{" "}
+              Database (Turso/libsql):{" "}
               {status.hasTurso ? (
                 <span style={{ color: "var(--ok)" }}>OK</span>
               ) : (
                 <span style={{ color: "var(--danger)" }}>
-                  mangler (uden Turso er data midlertidig i /tmp på Vercel)
+                  mangler (uden Turso/DATABASE_URL er data midlertidig i /tmp på Vercel)
                 </span>
               )}
             </li>
@@ -61,15 +67,13 @@ export default function SetupPage() {
           <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.2rem" }}>
             {(["SESSION_SECRET", "TURSO_DATABASE_URL", "TURSO_AUTH_TOKEN"] as const).map(
               (key) => {
-                const missing = status.missing.includes(key);
-                const okSession = key === "SESSION_SECRET" && status.hasSessionSecret;
-                const okTurso =
-                  (key === "TURSO_DATABASE_URL" || key === "TURSO_AUTH_TOKEN") &&
-                  status.hasTurso;
-                const done = okSession || okTurso || (!missing && key !== "SESSION_SECRET");
+                const done =
+                  key === "SESSION_SECRET"
+                    ? status.hasSessionSecret
+                    : status.hasTurso;
                 return (
                   <li key={key} className="hint" style={{ marginBottom: "0.4rem" }}>
-                    <code style={{ color: "var(--cream)" }}>{key}</code>
+                    <code style={{ color: "var(--cream)" }}>{ENV_LABEL[key] || key}</code>
                     {" — "}
                     {ENV_HELP[key]}
                     {done ? (
@@ -89,7 +93,7 @@ export default function SetupPage() {
           <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.2rem" }}>
             {OPTIONAL_ENV_KEYS.map((key) => (
               <li key={key} className="hint">
-                <code style={{ color: "var(--cream)" }}>{key}</code>
+                <code style={{ color: "var(--cream)" }}>{ENV_LABEL[key] || key}</code>
                 {" — "}
                 {ENV_HELP[key]}
               </li>
@@ -106,7 +110,7 @@ export default function SetupPage() {
             </li>
             <li>
               Tilføj <code>SESSION_SECRET</code> (≥32 tegn),{" "}
-              <code>TURSO_DATABASE_URL</code>, <code>TURSO_AUTH_TOKEN</code>
+              <code>TURSO_DATABASE_URL</code> eller <code>DATABASE_URL</code>, plus <code>TURSO_AUTH_TOKEN</code> eller <code>AUTH_TOKEN</code>
             </li>
             <li>
               Valgfrit: <code>BLOB_READ_WRITE_TOKEN</code>
@@ -131,7 +135,7 @@ export default function SetupPage() {
             SESSION_SECRET er sat. Du kan{" "}
             <Link href="/login">gå til login</Link>
             {!status.hasTurso
-              ? " — bemærk: uden Turso virker demoen midlertidigt (data forsvinder ved cold start)."
+              ? " — bemærk: uden Turso/DATABASE_URL virker demoen midlertidigt (data forsvinder ved cold start)."
               : "."}
           </p>
         ) : (

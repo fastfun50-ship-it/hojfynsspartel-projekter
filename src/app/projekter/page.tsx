@@ -13,16 +13,32 @@ import { publicImageUrl } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 
 export default async function PublicProjectsPage() {
-  const [firm, projects] = await Promise.all([getFirm(), listPublicProjects()]);
+  let firm: Awaited<ReturnType<typeof getFirm>> | undefined;
+  let projects: Awaited<ReturnType<typeof listPublicProjects>> = [];
+
+  try {
+    [firm, projects] = await Promise.all([getFirm(), listPublicProjects()]);
+  } catch (err) {
+    console.error("[projekter] DB unavailable, showing empty state", err);
+    firm = undefined;
+    projects = [];
+  }
+
   const pct = firm?.global_prisjustering_procent ?? 0;
 
-  const cards = await Promise.all(
-    projects.map(async (p) => {
-      const images = withPublicUrls(await getProjectImages(p.id));
-      const cover = pickCover(images);
-      return { p, coverUrl: cover ? publicImageUrl(cover.path) : null };
-    }),
-  );
+  let cards: { p: (typeof projects)[number]; coverUrl: string | null }[] = [];
+  try {
+    cards = await Promise.all(
+      projects.map(async (p) => {
+        const images = withPublicUrls(await getProjectImages(p.id));
+        const cover = pickCover(images);
+        return { p, coverUrl: cover ? publicImageUrl(cover.path) : null };
+      }),
+    );
+  } catch (err) {
+    console.error("[projekter] image load failed", err);
+    cards = projects.map((p) => ({ p, coverUrl: null }));
+  }
 
   return (
     <main className="shell">

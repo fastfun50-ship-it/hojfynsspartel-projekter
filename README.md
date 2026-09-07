@@ -8,7 +8,8 @@ Mappe: /workspace/hfs-foto-pwa · GitHub: https://github.com/fastfun50-ship-it/h
 
 ## Stack
 - Next.js 15 App Router + TypeScript
-- DB: Turso/libsql på Vercel; lokalt sql.js → data/app.db (better-sqlite3 undladt)
+- DB: Turso/libsql på Vercel (TURSO_* eller DATABASE_URL + AUTH_TOKEN); lokalt sql.js → data/app.db
+- Vercel uden Turso: midlertidig sql.js i `/tmp/hfs-app.db` + auto-seed (sæt Turso for durable demo)
 - Billeder: data/uploads/{projectId}/ lokalt; valgfrit Vercel Blob
 - sharp, iron-session, bcryptjs
 - PWA: public/manifest.webmanifest + public/sw.js
@@ -32,6 +33,7 @@ Safari → Del → Føj til hjemmeskærm. start_url=/app. HTTPS (localhost OK p�
 - src/app/api/ — API
 - src/app/app/ — mester + admin
 - src/app/projekter/ — offentlig
+- src/app/setup/ — Vercel env-checklist (ingen secrets)
 - src/lib/publishProject.ts — eneste publiceringssti + TODO WordPress-connector
 
 ## Env (.env.example)
@@ -49,12 +51,19 @@ Koden accepterer begge navne (se `src/lib/env.ts`). Mangler `SESSION_SECRET` →
 3. Redeploy efter env-ændring
 4. Kør seed med samme Turso-env
 
-## GitHub → Vercel (demo)
+## GitHub → Vercel (demo) — eksakte klik
 1. Opret repo hojfynsspartel-projekter (ikke marketing-repo)
-2. Push kode → Vercel Add Project
-3. Sæt env: SESSION_SECRET + (TURSO_DATABASE_URL|DATABASE_URL) + (TURSO_AUTH_TOKEN|AUTH_TOKEN) + evt. Blob
-4. Deploy; kør seed med Turso-env
-5. Demo = Vercel-URL only
+2. Push kode → Vercel **Add New… → Project** → vælg repo → Deploy
+3. Åbn projektet i [Vercel Dashboard](https://vercel.com/dashboard)
+4. Klik **Settings** → **Environment Variables**
+5. Tilføj (Production + Preview):
+   - `SESSION_SECRET` (≥32 tilfældige tegn)
+   - `TURSO_DATABASE_URL` **eller** `DATABASE_URL`
+   - `TURSO_AUTH_TOKEN` **eller** `AUTH_TOKEN`
+   - Valgfrit: `BLOB_READ_WRITE_TOKEN`
+6. Gem → **Deployments** → … på seneste → **Redeploy**
+7. (Valgfrit) seed med samme DB-env: `TURSO_*=… bun run seed`
+8. Hvis env mangler: åbn `/setup`. Demo = Vercel-URL only
 
 ### Senere cutover (docs only)
 Reverse proxy / rewrite af firmadomænets /projekter til denne Vercel-app. Marketing urørt.
