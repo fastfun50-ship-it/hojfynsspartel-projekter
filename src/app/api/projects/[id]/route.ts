@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/session";
 import { getDb } from "@/lib/db";
 import { hasRole } from "@/lib/constants";
 import { getProject, getProjectImages, withPublicUrls } from "@/lib/projects";
+import { deleteStoredImage } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -50,4 +51,30 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const updated = await getProject(id);
   return NextResponse.json({ project: updated });
+}
+
+export async function DELETE(_req: Request, ctx: Ctx) {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "Ikke logget ind" }, { status: 401 });
+
+  const { id } = await ctx.params;
+  const project = await getProject(id);
+  if (!project) return NextResponse.json({ error: "Ikke fundet" }, { status: 404 });
+
+  const isAdmin = hasRole(user.roles, "admin");
+  const ownDraft = project.created_by === user.id && project.status === "kladde";
+  if (!isAdmin && !ownDraft) {
+    return NextResponse.json({ error: "Ingen adgang" }, { status: 403 });
+  }
+
+  const images = await getProjectImages(id);
+  for (const img of images) {
+    await deleteStoredImage(img.path);
+  }
+
+  const db = await getDb();
+  await db.run("DELETE FROM images WHERE project_id = ?", [id]);
+  await db.run("DELETE FROM projects WHERE id = ?", [id]);
+
+  return NextResponse.json({ ok: true });
 }

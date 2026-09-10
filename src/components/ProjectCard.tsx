@@ -6,6 +6,7 @@ type Props = {
   coverUrl: string | null;
   badge?: string;
   subtitle?: string;
+  footer?: React.ReactNode;
   children?: React.ReactNode;
 };
 
@@ -15,19 +16,18 @@ export default function ProjectCard({
   coverUrl,
   badge,
   subtitle,
+  footer,
   children,
 }: Props) {
   return (
-    <article className="project-card">
+    <article className={"project-card" + (coverUrl ? "" : " project-card-empty")}>
       <Link href={href} className="project-card-link">
-        <div className="project-card-media">
-          {coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+        {coverUrl ? (
+          <div className="project-card-media">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={coverUrl} alt="" />
-          ) : (
-            <div className="project-card-placeholder" />
-          )}
-        </div>
+          </div>
+        ) : null}
         <div className="project-card-body">
           <div className="project-card-row">
             <strong className="project-card-title">{title}</strong>
@@ -36,6 +36,12 @@ export default function ProjectCard({
           {subtitle ? <div className="hint">{subtitle}</div> : null}
         </div>
       </Link>
+      {!coverUrl || footer ? (
+        <div className="project-card-meta">
+          {!coverUrl ? <span className="hint">Intet foto</span> : <span />}
+          {footer}
+        </div>
+      ) : null}
       {children ? <div className="project-card-actions">{children}</div> : null}
     </article>
   );

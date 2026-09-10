@@ -548,14 +548,33 @@ a:hover { text-decoration: underline; }
   object-fit: cover;
   display: block;
 }
-.project-card-placeholder {
-  width: 100%;
-  height: 100%;
-  background: #1a1a1a;
-}
 .project-card-body {
   padding: 0.85rem 1rem 1rem;
 }
+.project-card-empty .project-card-body {
+  padding-bottom: 0.35rem;
+}
+.project-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 1rem 0.7rem;
+}
+.btn-delete {
+  width: auto;
+  min-height: 32px;
+  padding: 0.2rem 0.45rem;
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-delete:hover { color: var(--danger); }
+.btn-delete:disabled { opacity: 0.5; cursor: not-allowed; }
 .project-card-row {
   display: flex;
   align-items: flex-start;
