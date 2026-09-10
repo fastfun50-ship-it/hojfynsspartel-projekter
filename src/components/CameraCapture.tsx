@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Kamera v1: 3×3 gitter + vaterpas + ghost (overlayUrl) + samme cover-crop.
+ * v1.1 (ikke her): auto-align / feature matching.
+ */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Props = {
@@ -10,6 +14,20 @@ type Props = {
   onClose: () => void;
 };
 
+type Level = "green" | "yellow" | "red" | "off";
+
+function levelFromAngles(gamma: number | null, beta: number | null): Level {
+  if (gamma == null || beta == null || Number.isNaN(gamma) || Number.isNaN(beta)) {
+    return "off";
+  }
+  const side = Math.abs(gamma);
+  const upright = Math.abs(beta - 90);
+  const worst = Math.max(side, upright);
+  if (worst <= 2.5) return "green";
+  if (worst <= 6) return "yellow";
+  return "red";
+}
+
 export default function CameraCapture({
   open,
   title,
@@ -18,11 +36,14 @@ export default function CameraCapture({
   onClose,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [usingNative, setUsingNative] = useState(false);
+  const [level, setLevel] = useState<Level>("off");
+  const [confirmSkew, setConfirmSkew] = useState(false);
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -33,6 +54,7 @@ export default function CameraCapture({
   const startStream = useCallback(async () => {
     setError("");
     setUsingNative(false);
+    setConfirmSkew(false);
     stopStream();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -53,7 +75,6 @@ export default function CameraCapture({
     } catch {
       setUsingNative(true);
       setError("");
-      // Fall back to native camera / file picker (works well on iPhone).
       setTimeout(() => fileRef.current?.click(), 80);
     }
   }, [stopStream]);
@@ -61,23 +82,83 @@ export default function CameraCapture({
   useEffect(() => {
     if (!open) {
       stopStream();
+      setConfirmSkew(false);
       return;
     }
     void startStream();
     return () => stopStream();
   }, [open, startStream, stopStream]);
 
-  function shutter() {
+  useEffect(() => {
+    if (!open || usingNative) {
+      setLevel("off");
+      return;
+    }
+
+    let last = 0;
+    const onOrient = (e: DeviceOrientationEvent) => {
+      const now = Date.now();
+      if (now - last < 80) return;
+      last = now;
+      setLevel(levelFromAngles(e.gamma, e.beta));
+    };
+
+    const bind = async () => {
+      const DOE = DeviceOrientationEvent as unknown as {
+        requestPermission?: () => Promise<string>;
+      };
+      try {
+        if (typeof DOE.requestPermission === "function") {
+          const res = await DOE.requestPermission();
+          if (res !== "granted") {
+            setLevel("off");
+            return;
+          }
+        }
+      } catch {
+        setLevel("off");
+        return;
+      }
+      window.addEventListener("deviceorientation", onOrient, true);
+    };
+
+    void bind();
+    return () => window.removeEventListener("deviceorientation", onOrient, true);
+  }, [open, usingNative]);
+
+  function captureCoverCrop() {
     const video = videoRef.current;
-    if (!video || !ready) return;
-    const w = video.videoWidth || 1280;
-    const h = video.videoHeight || 720;
+    const stage = stageRef.current;
+    if (!video || !ready) return null;
+    const vw = video.videoWidth || 1280;
+    const vh = video.videoHeight || 720;
+    const sw = stage?.clientWidth || vw;
+    const sh = stage?.clientHeight || vh;
+    const scale = Math.max(sw / vw, sh / vh);
+    const cropW = sw / scale;
+    const cropH = sh / scale;
+    const sx = (vw - cropW) / 2;
+    const sy = (vh - cropH) / 2;
+
+    let outW = Math.round(cropW);
+    let outH = Math.round(cropH);
+    const long = Math.max(outW, outH);
+    if (long > 2000) {
+      const f = 2000 / long;
+      outW = Math.round(outW * f);
+      outH = Math.round(outH * f);
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, w, h);
+    if (!ctx) return null;
+    ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, outW, outH);
+    return canvas;
+  }
+
+  function emitBlob(canvas: HTMLCanvasElement) {
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
@@ -85,11 +166,23 @@ export default function CameraCapture({
           type: "image/jpeg",
         });
         stopStream();
+        setConfirmSkew(false);
         onCapture(file);
       },
       "image/jpeg",
-      0.92,
+      0.82,
     );
+  }
+
+  function shutter() {
+    if (!ready) return;
+    if (level === "red" && !confirmSkew) {
+      setConfirmSkew(true);
+      return;
+    }
+    const canvas = captureCoverCrop();
+    if (!canvas) return;
+    emitBlob(canvas);
   }
 
   function onNativeFile(file: File | undefined) {
@@ -102,6 +195,15 @@ export default function CameraCapture({
 
   if (!open) return null;
 
+  const levelLabel =
+    level === "green"
+      ? "Lige"
+      : level === "yellow"
+        ? "Næsten lige"
+        : level === "red"
+          ? "Hold telefonen lodret"
+          : "Vaterpas ikke tilgængelig";
+
   return (
     <div className="cam-fullscreen" role="dialog" aria-modal="true" aria-label={title}>
       <div className="cam-top">
@@ -112,7 +214,7 @@ export default function CameraCapture({
       </div>
 
       {!usingNative ? (
-        <div className="cam-stage">
+        <div className="cam-stage" ref={stageRef}>
           <video
             ref={videoRef}
             className="cam-video"
@@ -124,10 +226,35 @@ export default function CameraCapture({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={overlayUrl} alt="" className="cam-overlay" />
           ) : null}
+          <div className="cam-grid" aria-hidden="true">
+            <span className="cam-grid-v" style={{ left: "33.333%" }} />
+            <span className="cam-grid-v" style={{ left: "66.666%" }} />
+            <span className="cam-grid-h" style={{ top: "33.333%" }} />
+            <span className="cam-grid-h" style={{ top: "66.666%" }} />
+          </div>
+          <div className={"cam-level cam-level-" + level} aria-live="polite">
+            <span className="cam-level-dot" />
+            <span>{levelLabel}</span>
+          </div>
           {!ready && !error ? (
             <p className="cam-hint">Åbner kamera…</p>
           ) : null}
           {error ? <p className="cam-hint">{error}</p> : null}
+          {confirmSkew ? (
+            <div className="cam-skew">
+              <p>Telefonen er skæv. Billedet passer dårligere i før/efter.</p>
+              <button type="button" className="btn btn-primary" onClick={shutter}>
+                Gem alligevel
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setConfirmSkew(false)}
+              >
+                Prøv igen
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="cam-stage cam-native">
@@ -136,6 +263,9 @@ export default function CameraCapture({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={overlayUrl} alt="Før (reference)" className="cam-native-ref" />
           ) : null}
+          <p className="hint" style={{ textAlign: "center", maxWidth: 280 }}>
+            Gitter og vaterpas virker i live-kamera. Hvis iPhone åbner systemkameraet, sigt efter samme kanter som før-billedet.
+          </p>
           <button
             type="button"
             className="btn btn-primary cam-native-btn"
@@ -152,7 +282,7 @@ export default function CameraCapture({
             type="button"
             className="cam-shutter"
             aria-label="Tag foto"
-            disabled={!ready}
+            disabled={!ready || confirmSkew}
             onClick={shutter}
           />
         </div>

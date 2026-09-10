@@ -369,3 +369,73 @@ a:hover { text-decoration: underline; }
 .has-mester-cta {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
+.cam-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.cam-grid-v,
+.cam-grid-h {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+.cam-grid-v {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.cam-grid-h {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.cam-level {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #eee;
+}
+.cam-level-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #888;
+}
+.cam-level-green .cam-level-dot { background: #3dcc6f; }
+.cam-level-green { color: #b8f5cc; }
+.cam-level-yellow .cam-level-dot { background: #e7c14a; }
+.cam-level-red .cam-level-dot { background: #e85d5d; }
+.cam-level-red { color: #ffd0d0; }
+
+.cam-skew {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 3.5rem;
+  z-index: 4;
+  background: rgba(12, 12, 12, 0.92);
+  border: 1px solid #444;
+  border-radius: 14px;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.cam-skew p {
+  margin: 0;
+  font-size: 0.95rem;
+}
