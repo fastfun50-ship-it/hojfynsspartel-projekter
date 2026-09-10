@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -p 3001",
     "seed": "tsx scripts/seed.ts",
+    "import:cms": "tsx scripts/import-legacy-cms.ts",
     "lint": "eslint"
   },
   "dependencies": {
