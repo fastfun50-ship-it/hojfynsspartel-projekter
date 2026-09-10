@@ -1,31 +1,13 @@
-import { attachCovers, listProjectsForFirm } from "@/lib/projects";
-import { STATUS_LABELS } from "@/lib/constants";
-import ProjectCard from "@/components/ProjectCard";
+import { getSession } from "@/lib/session";
+import { hasRole } from "@/lib/constants";
+import { logoutAction } from "./actions";
+import HomeHub from "@/components/HomeHub";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppHomePage() {
-  const projects = await attachCovers(await listProjectsForFirm());
+  const session = await getSession();
+  const isAdmin = session.user ? hasRole(session.user.roles, "admin") : false;
 
-  return (
-    <div className="stack">
-      <h1 className="page-title">Projekter</h1>
-      {projects.length === 0 ? (
-        <p className="hint">Ingen projekter endnu. Opret et og tag før-foto.</p>
-      ) : (
-        <div className="stack">
-          {projects.map((p) => (
-            <ProjectCard
-              key={p.id}
-              href={"/app/projekter/" + p.id}
-              title={p.title}
-              coverUrl={p.coverUrl}
-              badge={STATUS_LABELS[p.status]}
-              deleteId={p.id}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <HomeHub isAdmin={isAdmin} logoutAction={logoutAction} />;
 }

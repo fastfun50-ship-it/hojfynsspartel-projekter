@@ -258,10 +258,12 @@ export default function ProjectDetailClient({
         <h1 className="page-title">{project.title}</h1>
         <span className="badge">{STATUS_LABELS[project.status]}</span>
       </div>
-      <div className="project-card-meta" style={{ padding: 0 }}>
-        <span />
-        <DeleteProjectButton projectId={project.id} redirectTo="/app" />
-      </div>
+      {isAdmin || project.created_by === userId ? (
+        <div className="project-card-meta" style={{ padding: 0 }}>
+          <span />
+          <DeleteProjectButton projectId={project.id} redirectTo="/app/projekter" />
+        </div>
+      ) : null}
       <div className="hint">{CATEGORY_LABELS[project.category]}</div>
       {project.status === "afventer_godkendelse" ? (
         <p className="hint" style={{ margin: 0 }}>
