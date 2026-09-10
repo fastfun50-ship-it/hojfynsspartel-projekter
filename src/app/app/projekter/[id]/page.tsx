@@ -50,6 +50,9 @@ export default async function ProjectDetailPage({ params }: Props) {
       initialImages={images}
       userId={session.user.id}
       isAdmin={hasRole(session.user.roles, "admin")}
+      canDeleteProject={
+        hasRole(session.user.roles, "admin") || hasRole(session.user.roles, "mester")
+      }
     />
   );
 }

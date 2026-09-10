@@ -24,11 +24,13 @@ export default function ProjectDetailClient({
   initialImages,
   userId,
   isAdmin,
+  canDeleteProject,
 }: {
   initialProject: Project;
   initialImages: Img[];
   userId: string;
   isAdmin: boolean;
+  canDeleteProject: boolean;
 }) {
   const router = useRouter();
   const [project, setProject] = useState(initialProject);
@@ -258,7 +260,7 @@ export default function ProjectDetailClient({
         <h1 className="page-title">{project.title}</h1>
         <span className="badge">{STATUS_LABELS[project.status]}</span>
       </div>
-      {isAdmin || project.created_by === userId ? (
+      {canDeleteProject ? (
         <div className="project-card-meta" style={{ padding: 0 }}>
           <span />
           <DeleteProjectButton projectId={project.id} redirectTo="/app/projekter" />

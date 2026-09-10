@@ -61,9 +61,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   const project = await getProject(id);
   if (!project) return NextResponse.json({ error: "Ikke fundet" }, { status: 404 });
 
-  const isAdmin = hasRole(user.roles, "admin");
-  const isOwner = project.created_by === user.id;
-  if (!isAdmin && !isOwner) {
+  if (!hasRole(user.roles, "admin") && !hasRole(user.roles, "mester")) {
     return NextResponse.json({ error: "Ingen adgang" }, { status: 403 });
   }
 
