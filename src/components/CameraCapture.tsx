@@ -22,9 +22,8 @@ function levelFromAngles(gamma: number | null, beta: number | null): Level {
   }
   const side = Math.abs(gamma);
   const upright = Math.abs(beta - 90);
-  const worst = Math.max(side, upright);
-  if (worst <= 2.5) return "green";
-  if (worst <= 6) return "yellow";
+  if (side <= 10 && upright <= 18) return "green";
+  if (side <= 18 && upright <= 28) return "yellow";
   return "red";
 }
 
