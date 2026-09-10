@@ -1,4 +1,4 @@
-const CACHE = "hfs-foto-v1";
+const CACHE = "hfs-foto-v2";
 const ASSETS = ["/", "/login", "/projekter", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -17,15 +17,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.pathname.startsWith("/api/")) return;
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const fetched = fetch(req).then((res) => {
+    fetch(req)
+      .then((res) => {
         const copy = res.clone();
         if (res.ok && url.origin === self.location.origin) {
           caches.open(CACHE).then((c) => c.put(req, copy));
         }
         return res;
-      }).catch(() => cached);
-      return cached || fetched;
-    })
+      })
+      .catch(() => caches.match(req))
   );
 });

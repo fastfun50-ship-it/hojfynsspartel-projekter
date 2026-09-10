@@ -78,6 +78,7 @@ export default function AdminPage() {
             title={p.title}
             coverUrl={p.coverUrl}
             badge={STATUS_LABELS[p.status]}
+            deleteId={p.id}
           >
             <button
               type="button"
@@ -109,6 +110,7 @@ export default function AdminPage() {
             title={p.title}
             coverUrl={p.coverUrl}
             badge={STATUS_LABELS[p.status]}
+            deleteId={p.id}
           />
         ))}
       </section>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import DeleteProjectButton from "./DeleteProjectButton";
 
 type Props = {
   href: string;
@@ -6,7 +7,7 @@ type Props = {
   coverUrl: string | null;
   badge?: string;
   subtitle?: string;
-  footer?: React.ReactNode;
+  deleteId?: string;
   children?: React.ReactNode;
 };
 
@@ -16,7 +17,7 @@ export default function ProjectCard({
   coverUrl,
   badge,
   subtitle,
-  footer,
+  deleteId,
   children,
 }: Props) {
   return (
@@ -36,10 +37,10 @@ export default function ProjectCard({
           {subtitle ? <div className="hint">{subtitle}</div> : null}
         </div>
       </Link>
-      {!coverUrl || footer ? (
+      {!coverUrl || deleteId ? (
         <div className="project-card-meta">
           {!coverUrl ? <span className="hint">Intet foto</span> : <span />}
-          {footer}
+          {deleteId ? <DeleteProjectButton projectId={deleteId} /> : null}
         </div>
       ) : null}
       {children ? <div className="project-card-actions">{children}</div> : null}

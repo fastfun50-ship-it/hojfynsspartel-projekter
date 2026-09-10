@@ -14,6 +14,7 @@ import { adjustPrice, formatKr } from "@/lib/prices";
 import { saveLastAction } from "@/lib/lastAction";
 import type { ImageType, Project, ProjectImage } from "@/lib/types";
 import CameraCapture from "@/components/CameraCapture";
+import DeleteProjectButton from "@/components/DeleteProjectButton";
 
 type Img = ProjectImage & { url: string };
 type Firm = { global_prisjustering_procent: number };
@@ -256,6 +257,10 @@ export default function ProjectDetailClient({
       <div className="project-head">
         <h1 className="page-title">{project.title}</h1>
         <span className="badge">{STATUS_LABELS[project.status]}</span>
+      </div>
+      <div className="project-card-meta" style={{ padding: 0 }}>
+        <span />
+        <DeleteProjectButton projectId={project.id} redirectTo="/app" />
       </div>
       <div className="hint">{CATEGORY_LABELS[project.category]}</div>
       {project.status === "afventer_godkendelse" ? (
