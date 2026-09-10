@@ -31,7 +31,7 @@ export default function NewProjectPage() {
 
   return (
     <form className="stack card" onSubmit={onSubmit}>
-      <h1 style={{ margin: 0, fontSize: "1.25rem" }}>Nyt projekt</h1>
+      <h1 className="page-title">Nyt projekt</h1>
       {error ? <div className="error">{error}</div> : null}
       <div>
         <label className="label">Titel</label>

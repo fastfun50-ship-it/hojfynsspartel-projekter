@@ -2,13 +2,11 @@ import Link from "next/link";
 import {
   getFirm,
   listPublicProjects,
-  getProjectImages,
-  pickCover,
-  withPublicUrls,
+  attachCovers,
 } from "@/lib/projects";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { priceFromLabel } from "@/lib/prices";
-import { publicImageUrl } from "@/lib/storage";
+import ProjectCard from "@/components/ProjectCard";
 
 export const dynamic = "force-dynamic";
 
@@ -26,26 +24,20 @@ export default async function PublicProjectsPage() {
 
   const pct = firm?.global_prisjustering_procent ?? 0;
 
-  let cards: { p: (typeof projects)[number]; coverUrl: string | null }[] = [];
+  let cards: Awaited<ReturnType<typeof attachCovers>> = [];
   try {
-    cards = await Promise.all(
-      projects.map(async (p) => {
-        const images = withPublicUrls(await getProjectImages(p.id));
-        const cover = pickCover(images);
-        return { p, coverUrl: cover ? publicImageUrl(cover.path) : null };
-      }),
-    );
+    cards = await attachCovers(projects);
   } catch (err) {
     console.error("[projekter] image load failed", err);
-    cards = projects.map((p) => ({ p, coverUrl: null }));
+    cards = projects.map((p) => ({ ...p, coverUrl: null }));
   }
 
   return (
     <main className="shell">
       <header className="topbar">
         <div>
-          <div style={{ color: "var(--accent)", fontWeight: 800 }}>Højfynsspartel</div>
-          <h1 style={{ margin: "0.25rem 0 0", fontSize: "1.4rem" }}>Projekter</h1>
+          <div className="brand">Højfynsspartel</div>
+          <h1 className="page-title">Projekter</h1>
         </div>
         <Link href="/login" className="hint">Log ind</Link>
       </header>
@@ -54,25 +46,17 @@ export default async function PublicProjectsPage() {
         <p className="hint">Ingen publicerede projekter endnu.</p>
       ) : (
         <div className="stack">
-          {cards.map(({ p, coverUrl }) => {
+          {cards.map((p) => {
             const price = priceFromLabel(p.price_from, pct, !!p.show_price_on_site);
+            const cat = CATEGORY_LABELS[p.category] || p.category;
             return (
-              <Link
+              <ProjectCard
                 key={p.id}
                 href={"/projekter/" + p.id}
-                className="card"
-                style={{ display: "block", textDecoration: "none", color: "inherit" }}
-              >
-                {coverUrl ? (
-                  <div className="cover" style={{ marginBottom: "0.75rem" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={coverUrl} alt={p.title} />
-                  </div>
-                ) : null}
-                <strong>{p.title}</strong>
-                <div className="hint">{CATEGORY_LABELS[p.category] || p.category}</div>
-                {price ? <div style={{ marginTop: "0.35rem", color: "var(--accent)" }}>{price}</div> : null}
-              </Link>
+                title={p.title}
+                coverUrl={p.coverUrl}
+                subtitle={price ? cat + " · " + price : cat}
+              />
             );
           })}
         </div>

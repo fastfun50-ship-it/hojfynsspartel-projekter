@@ -9,5 +9,5 @@ export default function LoginPage() {
   if (!status.hasSessionSecret) {
     redirect("/setup");
   }
-  return <LoginForm />;
+  return <LoginForm showSetup={status.missing.length > 0} />;
 }

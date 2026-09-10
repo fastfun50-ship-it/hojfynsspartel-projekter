@@ -16,9 +16,16 @@ export async function POST(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const project = await getProject(id);
   if (!project) return NextResponse.json({ error: "Ikke fundet" }, { status: 404 });
-  if (!["godkendt", "skjult"].includes(project.status)) {
+  const PUBLISHABLE = new Set([
+    "kladde",
+    "afventer_godkendelse",
+    "godkendt",
+    "skjult",
+    "publiceret",
+  ]);
+  if (!PUBLISHABLE.has(project.status)) {
     return NextResponse.json(
-      { error: "Kan kun publicere godkendte eller skjulte projekter" },
+      { error: "Kan ikke publiceres i denne status" },
       { status: 400 },
     );
   }

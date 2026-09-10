@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { requireUser } from "@/lib/session";
 import { getDb, isEphemeralDb } from "@/lib/db";
 import { FIRMA_ID, DEFAULT_PROJECT_TITLE, hasRole } from "@/lib/constants";
-import { listProjectsForFirm } from "@/lib/projects";
+import { attachCovers, listProjectsForFirm } from "@/lib/projects";
 import type { Category } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -14,7 +14,9 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const status = url.searchParams.get("status") || undefined;
-  const projects = await listProjectsForFirm(status ? { status } : undefined);
+  const projects = await attachCovers(
+    await listProjectsForFirm(status ? { status } : undefined),
+  );
   return NextResponse.json({ projects });
 }
 

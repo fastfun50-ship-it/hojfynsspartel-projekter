@@ -20,10 +20,7 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Ikke i godkendelseskø" }, { status: 400 });
   }
   const body = await req.json().catch(() => ({}));
-  const note = String(body.note || "").trim();
-  if (!note) {
-    return NextResponse.json({ error: "Skriv en afvisningsnote" }, { status: 400 });
-  }
+  const note = String(body.note || "").trim() || null;
   const now = new Date().toISOString();
   const db = await getDb();
   await db.run(

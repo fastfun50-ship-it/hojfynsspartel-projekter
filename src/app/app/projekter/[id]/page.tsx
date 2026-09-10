@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getProject, getProjectImages, withPublicUrls } from "@/lib/projects";
 import { isEphemeralDb } from "@/lib/db";
+import { hasRole } from "@/lib/constants";
 import ProjectDetailClient from "./ProjectDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function ProjectDetailPage({ params }: Props) {
     const ephemeral = isEphemeralDb();
     return (
       <section className="card stack">
-        <h1 style={{ margin: 0, fontSize: "1.25rem" }}>Projekt ikke fundet</h1>
+        <h1 className="page-title">Projekt ikke fundet</h1>
         <p className="hint" style={{ margin: 0 }}>
           Vi kunne ikke finde projektet med id <code>{id}</code>. Det kan være slettet,
           eller du har ikke adgang.
@@ -48,6 +49,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       initialProject={project}
       initialImages={images}
       userId={session.user.id}
+      isAdmin={hasRole(session.user.roles, "admin")}
     />
   );
 }

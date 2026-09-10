@@ -44,7 +44,7 @@ export default function FirmSettingsPage() {
   return (
     <div className="stack">
       <Link href="/app/admin" className="hint">← Tilbage til admin</Link>
-      <h1 style={{ margin: 0, fontSize: "1.3rem" }}>Firmaindstillinger</h1>
+      <h1 className="page-title">Firmaindstillinger</h1>
       {error ? <div className="error">{error}</div> : null}
       <form className="card stack" onSubmit={onSubmit}>
         <div>

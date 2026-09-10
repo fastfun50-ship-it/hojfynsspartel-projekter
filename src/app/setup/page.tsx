@@ -25,15 +25,13 @@ export default function SetupPage() {
     <main className="shell">
       <header className="topbar">
         <div>
-          <div style={{ color: "var(--accent)", fontWeight: 800, fontSize: "1.25rem" }}>
-            Højfynsspartel
-          </div>
+          <div className="brand">Højfynsspartel</div>
           <div className="hint">Opsætning — miljøvariabler</div>
         </div>
       </header>
 
       <section className="card stack">
-        <h1 style={{ margin: 0, fontSize: "1.35rem" }}>Vercel-miljø mangler</h1>
+        <h1 className="page-title">Vercel-miljø mangler</h1>
         <p className="hint" style={{ margin: 0 }}>
           Appen kører ikke korrekt før obligatoriske env-variabler er sat i Vercel.
           Ingen hemmeligheder vises her.

@@ -25,7 +25,7 @@ export default async function PublicProjectDetailPage({ params }: Props) {
   return (
     <main className="shell">
       <Link href="/projekter" className="hint">← Alle projekter</Link>
-      <h1 style={{ margin: "0.75rem 0 0.25rem", fontSize: "1.4rem" }}>{project.title}</h1>
+      <h1 className="page-title" style={{ marginTop: "0.75rem" }}>{project.title}</h1>
       <div className="hint">{CATEGORY_LABELS[project.category]}{project.year ? " · " + project.year : ""}</div>
 
       {project.scope ? (

@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Højfynsspartel – Projekter",
@@ -29,7 +35,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="da">
+    <html lang="da" className={dmSans.className}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>

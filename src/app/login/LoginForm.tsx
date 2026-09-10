@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
 
-export default function LoginForm() {
+export default function LoginForm({ showSetup }: { showSetup: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -34,15 +34,13 @@ export default function LoginForm() {
     <main className="shell">
       <div className="topbar">
         <div>
-          <div style={{ color: "var(--accent)", fontWeight: 800, fontSize: "1.25rem" }}>
-            Højfynsspartel
-          </div>
-          <div className="hint">Foto-app til før / under / efter</div>
+          <div className="brand">Højfynsspartel</div>
+          <div className="hint">Før og efter</div>
         </div>
       </div>
 
       <form className="card stack" onSubmit={onSubmit}>
-        <h1 style={{ margin: 0, fontSize: "1.35rem" }}>Log ind</h1>
+        <h1 className="page-title">Log ind</h1>
         {error ? <div className="error">{error}</div> : null}
         <div>
           <label className="label" htmlFor="email">Email</label>
@@ -68,7 +66,7 @@ export default function LoginForm() {
             required
           />
         </div>
-        <label style={{ display: "flex", gap: "0.6rem", alignItems: "center" }}>
+        <label className="check-row">
           <input
             type="checkbox"
             checked={remember}
@@ -81,10 +79,14 @@ export default function LoginForm() {
         </button>
       </form>
 
-      <p className="hint" style={{ marginTop: "1rem" }}>
-        Offentlige projekter: <Link href="/projekter">/projekter</Link>
-        {" · "}
-        <Link href="/setup">Opsætning</Link>
+      <p className="hint login-links">
+        <Link href="/projekter">Se offentlige projekter</Link>
+        {showSetup ? (
+          <>
+            {" · "}
+            <Link href="/setup">Opsætning</Link>
+          </>
+        ) : null}
       </p>
     </main>
   );

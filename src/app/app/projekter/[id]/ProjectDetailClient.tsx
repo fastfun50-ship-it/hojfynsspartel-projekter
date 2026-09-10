@@ -4,23 +4,30 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import {
+  CATEGORIES,
   CATEGORY_LABELS,
   IMAGE_TYPE_LABELS,
   IMAGE_TYPES,
+  STATUS_LABELS,
 } from "@/lib/constants";
+import { adjustPrice, formatKr } from "@/lib/prices";
+import { saveLastAction } from "@/lib/lastAction";
 import type { ImageType, Project, ProjectImage } from "@/lib/types";
 import CameraCapture from "@/components/CameraCapture";
 
 type Img = ProjectImage & { url: string };
+type Firm = { global_prisjustering_procent: number };
 
 export default function ProjectDetailClient({
   initialProject,
   initialImages,
   userId,
+  isAdmin,
 }: {
   initialProject: Project;
   initialImages: Img[];
   userId: string;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [project, setProject] = useState(initialProject);
@@ -31,6 +38,8 @@ export default function ProjectDetailClient({
   const [cameraOpen, setCameraOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const [firm, setFirm] = useState<Firm | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
 
   const latestFoer = useMemo(
     () => [...images].filter((i) => i.type === "foer").at(-1),
@@ -52,15 +61,35 @@ export default function ProjectDetailClient({
   const canDelete =
     project.status === "kladde" || project.status === "afventer_godkendelse";
 
-  const showSendCta = project.status === "kladde" && !pendingFile;
-  const showUpdateCta = needsSiteUpdate && !pendingFile;
-  const showCtaBar = showSendCta || showUpdateCta;
+  const canAdminPublish =
+    isAdmin &&
+    !pendingFile &&
+    (project.status === "kladde" ||
+      project.status === "afventer_godkendelse" ||
+      project.status === "godkendt" ||
+      project.status === "skjult" ||
+      needsSiteUpdate);
+
+  const showMesterCta =
+    !isAdmin && !pendingFile && (project.status === "kladde" || needsSiteUpdate);
+
+  const showCtaBar = canAdminPublish || showMesterCta;
+  const showReject = isAdmin && project.status === "afventer_godkendelse" && !pendingFile;
+  const showHide =
+    isAdmin && project.status === "publiceret" && !needsSiteUpdate && !pendingFile;
 
   useEffect(() => {
     return () => {
       if (pendingUrl) URL.revokeObjectURL(pendingUrl);
     };
   }, [pendingUrl]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    api<{ firm: Firm }>("/api/firm")
+      .then((d) => setFirm(d.firm))
+      .catch(() => {});
+  }, [isAdmin]);
 
   function clearPending() {
     if (pendingUrl) URL.revokeObjectURL(pendingUrl);
@@ -129,6 +158,7 @@ export default function ProjectDetailClient({
         { method: "POST", body: "{}" },
       );
       setProject(data.project);
+      saveLastAction("submit", project.id);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke sende");
@@ -137,32 +167,113 @@ export default function ProjectDetailClient({
     }
   }
 
+  async function publish() {
+    setBusy(true);
+    setError("");
+    try {
+      const data = await api<{ project: Project }>(
+        "/api/projects/" + project.id + "/publish",
+        { method: "POST", body: "{}" },
+      );
+      setProject(data.project);
+      saveLastAction("publish", project.id);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Publicering fejlede");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reject() {
+    setBusy(true);
+    setError("");
+    try {
+      const data = await api<{ project: Project }>(
+        "/api/projects/" + project.id + "/reject",
+        { method: "POST", body: JSON.stringify({ note: rejectNote }) },
+      );
+      setProject(data.project);
+      setRejectNote("");
+      saveLastAction("reject", project.id);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Afvisning fejlede");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function hide() {
+    setBusy(true);
+    setError("");
+    try {
+      const data = await api<{ project: Project }>(
+        "/api/projects/" + project.id + "/hide",
+        { method: "POST", body: "{}" },
+      );
+      setProject(data.project);
+      saveLastAction("hide", project.id);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke skjule");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveFields() {
+    setBusy(true);
+    setError("");
+    try {
+      const data = await api<{ project: Project }>("/api/projects/" + project.id, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: project.title,
+          category: project.category,
+          scope: project.scope,
+          year: project.year,
+          price_from: project.price_from,
+          price_to: project.price_to,
+          may_show_public: !!project.may_show_public,
+          show_price_on_site: !!project.show_price_on_site,
+        }),
+      });
+      setProject(data.project);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gem fejlede");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const showBeforeOverlay = activeType === "efter" && !!latestFoer;
+  const pct = firm?.global_prisjustering_procent ?? 0;
 
   return (
-    <div className={"stack" + (showCtaBar ? " has-mester-cta" : "")}>
-      <div>
-        <h1 style={{ margin: "0 0 0.35rem", fontSize: "1.3rem" }}>{project.title}</h1>
-        <div className="hint">{CATEGORY_LABELS[project.category]}</div>
-        {project.status === "afventer_godkendelse" ? (
-          <p className="hint" style={{ margin: "0.5rem 0 0" }}>
-            Sendt — afventer godkendelse.
-          </p>
-        ) : null}
-        {project.reject_note ? (
-          <div className="error" style={{ marginTop: "0.75rem" }}>
-            Afvist: {project.reject_note}
-          </div>
-        ) : null}
+    <div className={"stack" + (showCtaBar ? " has-sticky-cta" : "")}>
+      <div className="project-head">
+        <h1 className="page-title">{project.title}</h1>
+        <span className="badge">{STATUS_LABELS[project.status]}</span>
       </div>
+      <div className="hint">{CATEGORY_LABELS[project.category]}</div>
+      {project.status === "afventer_godkendelse" ? (
+        <p className="hint" style={{ margin: 0 }}>
+          Sendt — afventer godkendelse.
+        </p>
+      ) : null}
+      {project.reject_note ? (
+        <div className="error" style={{ marginTop: 0 }}>
+          Afvist: {project.reject_note}
+        </div>
+      ) : null}
 
       {error ? <div className="error">{error}</div> : null}
 
       {pendingUrl ? (
         <div className="stack review-panel">
-          <p style={{ margin: 0, fontWeight: 700, fontSize: "1.1rem" }}>
-            Tjek {IMAGE_TYPE_LABELS[activeType]}
-          </p>
+          <p className="review-title">Tjek {IMAGE_TYPE_LABELS[activeType]}</p>
           <div className="compare-frame">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={pendingUrl} alt="Nyt foto" className="compare-base" />
@@ -190,7 +301,7 @@ export default function ProjectDetailClient({
           </button>
           <button
             type="button"
-            className="btn btn-secondary btn-xl"
+            className="btn btn-secondary"
             disabled={busy}
             onClick={retake}
           >
@@ -205,9 +316,7 @@ export default function ProjectDetailClient({
               <button
                 key={t}
                 type="button"
-                className={
-                  "btn " + (activeType === t ? "btn-primary" : "btn-ghost")
-                }
+                className={"pill" + (activeType === t ? " pill-active" : "")}
                 disabled={busy}
                 onClick={() => setActiveType(t)}
               >
@@ -258,38 +367,170 @@ export default function ProjectDetailClient({
         );
       })}
 
+      {isAdmin ? (
+        <details className="edit-fold">
+          <summary>Rediger tekst</summary>
+          <div className="stack" style={{ marginTop: "0.85rem" }}>
+            <div>
+              <label className="label">Titel</label>
+              <input
+                className="input"
+                value={project.title}
+                onChange={(e) => setProject({ ...project, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Kategori</label>
+              <select
+                className="select"
+                value={project.category}
+                onChange={(e) =>
+                  setProject({ ...project, category: e.target.value as Project["category"] })
+                }
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Scope / omfang</label>
+              <textarea
+                className="textarea"
+                value={project.scope || ""}
+                onChange={(e) => setProject({ ...project, scope: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">År</label>
+              <input
+                className="input"
+                type="number"
+                value={project.year ?? ""}
+                onChange={(e) =>
+                  setProject({
+                    ...project,
+                    year: e.target.value === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="label">Pris fra (grundpris)</label>
+              <input
+                className="input"
+                type="number"
+                value={project.price_from ?? ""}
+                onChange={(e) =>
+                  setProject({
+                    ...project,
+                    price_from: e.target.value === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
+              <p className="hint">
+                Vist: {formatKr(adjustPrice(project.price_from, pct)) || "—"}
+              </p>
+            </div>
+            <div>
+              <label className="label">Pris til (grundpris)</label>
+              <input
+                className="input"
+                type="number"
+                value={project.price_to ?? ""}
+                onChange={(e) =>
+                  setProject({
+                    ...project,
+                    price_to: e.target.value === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
+              <p className="hint">
+                Vist: {formatKr(adjustPrice(project.price_to, pct)) || "—"}
+              </p>
+            </div>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={!!project.may_show_public}
+                onChange={(e) =>
+                  setProject({ ...project, may_show_public: e.target.checked ? 1 : 0 })
+                }
+              />
+              Må vises offentligt
+            </label>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={!!project.show_price_on_site}
+                onChange={(e) =>
+                  setProject({ ...project, show_price_on_site: e.target.checked ? 1 : 0 })
+                }
+              />
+              Vis pris på site
+            </label>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={busy}
+              onClick={() => void saveFields()}
+            >
+              Gem tekst
+            </button>
+          </div>
+        </details>
+      ) : null}
+
+      {showReject ? (
+        <div className="stack">
+          <input
+            className="input"
+            placeholder="Note (valgfri)"
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() => void reject()}
+          >
+            Afvis
+          </button>
+        </div>
+      ) : null}
+
+      {showHide ? (
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={busy}
+          onClick={() => void hide()}
+        >
+          Skjul
+        </button>
+      ) : null}
+
       {showCtaBar ? (
-        <div className="mester-cta" role="region" aria-label="Send projekt">
-          {showSendCta ? (
+        <div className="sticky-cta" role="region" aria-label="Publicér">
+          {canAdminPublish ? (
             <button
               type="button"
               className="btn btn-primary btn-xl"
               disabled={busy}
-              onClick={() => void submit()}
+              onClick={() => void publish()}
             >
-              <span className="mester-cta-label">
-                <span className="mester-cta-title">
-                  {busy ? "Sender…" : "Send til godkendelse"}
-                </span>
-                <span className="mester-cta-sub">Læg på siden</span>
-              </span>
+              {busy ? "Publicerer…" : "Publicér"}
             </button>
           ) : null}
-          {showUpdateCta ? (
+          {showMesterCta ? (
             <button
               type="button"
               className="btn btn-primary btn-xl"
               disabled={busy}
               onClick={() => void submit()}
             >
-              <span className="mester-cta-label">
-                <span className="mester-cta-title">
-                  {busy ? "Sender…" : "Opdatér på siden"}
-                </span>
-                <span className="mester-cta-sub">
-                  Sendes til godkendelse igen
-                </span>
-              </span>
+              {busy ? "Sender…" : "Læg på siden"}
             </button>
           ) : null}
         </div>

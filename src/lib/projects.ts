@@ -74,3 +74,15 @@ export function pickCover(images: ProjectImage[]): ProjectImage | undefined {
     images[0]
   );
 }
+
+export type ProjectWithCover = Project & { coverUrl: string | null };
+
+export async function attachCovers(projects: Project[]): Promise<ProjectWithCover[]> {
+  return Promise.all(
+    projects.map(async (p) => {
+      const images = await getProjectImages(p.id);
+      const cover = pickCover(images);
+      return { ...p, coverUrl: cover ? publicImageUrl(cover.path) : null };
+    }),
+  );
+}

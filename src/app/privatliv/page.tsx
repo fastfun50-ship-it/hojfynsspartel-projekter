@@ -4,7 +4,7 @@ export default function PrivacyPage() {
   return (
     <main className="shell">
       <Link href="/projekter" className="hint">← Projekter</Link>
-      <h1 style={{ fontSize: "1.4rem" }}>Privatliv</h1>
+      <h1 className="page-title">Privatliv</h1>
       <div className="card stack">
         <p className="hint">
           Højfynsspartel behandler fotos og projektdata for at dokumentere håndværksarbejde
