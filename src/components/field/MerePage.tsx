@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Props = {
   isAdmin: boolean;
@@ -51,6 +51,7 @@ function IconLive() {
 }
 
 export default function MerePage({ isAdmin, logoutAction }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +64,11 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
+  function go(href: string) {
+    setOpen(false);
+    router.push(href);
+  }
+
   return (
     <div className="field-scroll">
       <header className="field-header">
@@ -71,33 +77,37 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
       </header>
 
       <div className="mere-stack">
-        <Link href="/app/projekter/ny" className="mere-row no-swipe">
+        <button type="button" className="mere-row no-swipe" onClick={() => go("/app/projekter/ny")}>
           <IconPlus />
           <span>Nyt job</span>
-        </Link>
-        <Link href="/projekter" className="mere-row no-swipe">
+        </button>
+        <button type="button" className="mere-row no-swipe" onClick={() => go("/projekter")}>
           <IconEye />
           <span>Se sitet</span>
-        </Link>
+        </button>
         {isAdmin ? (
-          <Link href="/app/admin/indstillinger" className="mere-row no-swipe">
+          <button
+            type="button"
+            className="mere-row no-swipe"
+            onClick={() => go("/app/admin/indstillinger")}
+          >
             <IconTag />
             <span>Priser</span>
-          </Link>
+          </button>
         ) : null}
 
         <div className="mere-divider" />
         <p className="mere-legacy-label">Gammelt / admin</p>
 
-        <Link href="/app/projekter" className="mere-row mere-row-muted no-swipe">
+        <button type="button" className="mere-row mere-row-muted no-swipe" onClick={() => go("/app/projekter")}>
           <IconGrid />
           <span>Projekter (grid)</span>
-        </Link>
+        </button>
         {isAdmin ? (
-          <Link href="/app/admin" className="mere-row mere-row-muted no-swipe">
+          <button type="button" className="mere-row mere-row-muted no-swipe" onClick={() => go("/app/admin")}>
             <IconLive />
             <span>På siden / admin</span>
-          </Link>
+          </button>
         ) : null}
 
         <div className="mere-more" ref={menuRef}>
@@ -113,9 +123,9 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
           {open ? (
             <div className="more-menu" role="menu">
               {isAdmin ? (
-                <Link href="/app/admin/indstillinger" role="menuitem" onClick={() => setOpen(false)}>
+                <button type="button" role="menuitem" className="more-logout" onClick={() => go("/app/admin/indstillinger")}>
                   Firma
-                </Link>
+                </button>
               ) : null}
               <form action={logoutAction}>
                 <button type="submit" role="menuitem" className="more-logout">

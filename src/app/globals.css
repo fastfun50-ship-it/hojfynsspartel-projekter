@@ -756,6 +756,11 @@ a:hover { text-decoration: underline; }
   scroll-snap-stop: always;
   overflow: hidden;
   touch-action: pan-y;
+  /* Inactive pages must not steal taps (iOS + horizontal pager) */
+  pointer-events: none;
+}
+.field-page-active {
+  pointer-events: auto;
 }
 .field-scroll {
   height: 100%;
@@ -1004,6 +1009,10 @@ a.sager-card:hover { text-decoration: none; border-color: #C4A574; }
   width: 100%;
   box-sizing: border-box;
   touch-action: manipulation;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 .mere-row svg { color: #C4A574; }
 a.mere-row:hover { text-decoration: none; border-color: #C4A574; }

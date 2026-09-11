@@ -144,16 +144,32 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
   return (
     <div className="field-root">
       <div className="field-pager" ref={pagerRef}>
-        <section className="field-page" aria-label="I dag">
+        <section
+          className={"field-page" + (page === 0 ? " field-page-active" : "")}
+          aria-label="I dag"
+          aria-hidden={page !== 0}
+        >
           <IDagPage onOpenSag={openSag} />
         </section>
-        <section className="field-page" aria-label="Uge">
+        <section
+          className={"field-page" + (page === 1 ? " field-page-active" : "")}
+          aria-label="Uge"
+          aria-hidden={page !== 1}
+        >
           <UgePage onOpenSag={openSag} />
         </section>
-        <section className="field-page" aria-label="Sager">
+        <section
+          className={"field-page" + (page === 2 ? " field-page-active" : "")}
+          aria-label="Sager"
+          aria-hidden={page !== 2}
+        >
           <SagerPage projects={projects} onOpenSag={openSag} />
         </section>
-        <section className="field-page" aria-label="Mere">
+        <section
+          className={"field-page" + (page === 3 ? " field-page-active" : "")}
+          aria-label="Mere"
+          aria-hidden={page !== 3}
+        >
           <MerePage isAdmin={isAdmin} logoutAction={logoutAction} />
         </section>
       </div>
