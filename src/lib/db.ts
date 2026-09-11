@@ -74,6 +74,25 @@ const SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)`,
   `CREATE INDEX IF NOT EXISTS idx_projects_firma ON projects(firma_id)`,
   `CREATE INDEX IF NOT EXISTS idx_images_project ON images(project_id)`,
+  `CREATE TABLE IF NOT EXISTS time_sessions (
+    id TEXT PRIMARY KEY,
+    sag_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_time_sessions_user ON time_sessions(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_time_sessions_sag ON time_sessions(sag_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_time_sessions_running ON time_sessions(user_id, ended_at)`,
+  `CREATE TABLE IF NOT EXISTS field_sag_state (
+    sag_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL DEFAULT 'open',
+    closed_at TEXT,
+    closed_by TEXT,
+    updated_at TEXT NOT NULL
+  )`,
 ];
 
 const SQLJS_WASM_CDN = "https://sql.js.org/dist/sql-wasm.wasm";
