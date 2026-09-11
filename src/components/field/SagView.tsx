@@ -17,6 +17,8 @@ type Props = {
   title?: string;
   initialImages?: Img[];
   onBack: () => void;
+  /** iPad Sager split — compact pane, no full-viewport chrome */
+  embedded?: boolean;
 };
 
 function toLocalInputValue(iso: string | null | undefined): string {
@@ -38,6 +40,7 @@ export default function SagView({
   title,
   initialImages = [],
   onBack,
+  embedded = false,
 }: Props) {
   const router = useRouter();
   const sagId = mode === "project" && projectId ? projectId : DEMO_NEXT.id;
@@ -185,11 +188,15 @@ export default function SagView({
   const showError = error || timeError;
 
   return (
-    <div className="sag-screen">
+    <div className={"sag-screen" + (embedded ? " sag-screen-embedded" : "")}>
       <header className="sag-top">
-        <button type="button" className="sag-back no-swipe" onClick={onBack} aria-label="Tilbage">
-          ‹
-        </button>
+        {embedded ? (
+          <span className="sag-embedded-label">Sag</span>
+        ) : (
+          <button type="button" className="sag-back no-swipe" onClick={onBack} aria-label="Tilbage">
+            ‹
+          </button>
+        )}
         <div className={"sag-chip" + (runningHere ? " sag-chip-live" : "")}>
           <span className="sag-chip-dot" />
           {statusChip}

@@ -733,25 +733,19 @@ a:hover { text-decoration: underline; }
   flex-direction: column;
   overflow: hidden;
 }
-.field-edge-guard {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
-  width: 20px;
-  z-index: 30;
-  touch-action: none;
-  pointer-events: auto;
-}
+/* Horizontal swipe lives ONLY in .field-swipe-zone (not full page) */
 .field-pager {
   flex: 1;
+  min-height: 0;
   display: flex;
+  /* Programmatic scrollTo for tabs; touch-action pan-y blocks full-page horizontal swipe */
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  touch-action: pan-y;
 }
 .field-pager::-webkit-scrollbar { display: none; }
 .field-page {
@@ -761,12 +755,30 @@ a:hover { text-decoration: underline; }
   scroll-snap-align: start;
   scroll-snap-stop: always;
   overflow: hidden;
+  touch-action: pan-y;
 }
 .field-scroll {
   height: 100%;
   overflow-y: auto;
-  padding: calc(1.1rem + env(safe-area-inset-top, 0px)) 1.25rem calc(1.25rem + 4.5rem);
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  /* bottom padding: modest — swipe strip + tabs sit outside scroll */
+  padding: calc(1.1rem + env(safe-area-inset-top, 0px)) 1.25rem 1.25rem;
   box-sizing: border-box;
+}
+/* ~1cm empty black strip JUST ABOVE tab bar — thumb horizontal swipe */
+.field-swipe-zone {
+  flex-shrink: 0;
+  height: 1cm;
+  min-height: 38px;
+  width: 100%;
+  background: #0B0B0B;
+  border-top: 1px solid #1a1a1a;
+  touch-action: pan-x;
+  z-index: 35;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .field-header { margin-bottom: 1.35rem; }
 .field-brand {
@@ -1292,4 +1304,143 @@ a.field-tab:hover { text-decoration: none; }
 }
 .sag-session-save {
   margin-top: 0.15rem;
+}
+
+/* Phone: tablet-only blocks hidden; idag stacks naturally */
+.idag-layout { display: block; }
+.uge-tablet-grid { display: none; }
+.uge-phone { display: block; }
+.sager-split { display: block; }
+.sager-detail-pane { display: none; }
+
+.sag-screen-embedded {
+  min-height: 0;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0.85rem 1rem 1.25rem;
+  background: transparent;
+}
+.sag-embedded-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #C4A574;
+}
+
+/* ---- iPad / tablet field layouts (phone unchanged below 768) ---- */
+@media (min-width: 768px) {
+  .shell-field {
+    max-width: 100%;
+  }
+  .field-root {
+    max-width: 100%;
+  }
+  .field-scroll {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  /* I dag: large case card left, rest of day right */
+  .idag-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+  .idag-layout .naeste-card {
+    margin-bottom: 0;
+  }
+  .idag-layout .rest-list {
+    background: #121212;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 0.35rem 1rem;
+  }
+  .idag-layout .rest-row:first-child {
+    border-top: none;
+  }
+  .idag-layout .rest-row:last-child {
+    border-bottom: none;
+  }
+
+  /* Uge: four days side by side (tir–fre) */
+  .uge-phone {
+    display: none;
+  }
+  .uge-tablet-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    align-items: start;
+  }
+  .uge-day-title {
+    margin: 0 0 0.75rem;
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #C4A574;
+    text-align: center;
+  }
+  .uge-day-col .uge-ledig {
+    min-height: 64px;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    text-align: center;
+  }
+  .uge-day-col .uge-job {
+    padding: 0.75rem 0.7rem;
+  }
+  .uge-day-col .uge-job strong {
+    font-size: 0.95rem;
+  }
+  .uge-day-col .uge-job span {
+    font-size: 0.85rem;
+  }
+
+  /* Sager: list left, sag detail right */
+  .sager-split {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.35fr);
+    gap: 1rem;
+    align-items: stretch;
+    min-height: calc(100% - 5rem);
+  }
+  .sager-list-pane {
+    min-width: 0;
+  }
+  .sager-detail-pane {
+    display: block;
+    min-width: 0;
+    background: #101010;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    overflow: auto;
+    max-height: calc(100dvh - 8rem - 1cm - env(safe-area-inset-bottom, 0px));
+  }
+  .sager-card-active {
+    border-color: #C4A574;
+  }
+  .sager-scroll > .field-header {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .field-scroll {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  .idag-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .uge-tablet-grid {
+    gap: 1.15rem;
+  }
+  .sager-split {
+    grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.4fr);
+    gap: 1.25rem;
+  }
 }

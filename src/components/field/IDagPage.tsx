@@ -48,58 +48,60 @@ export default function IDagPage({ onOpenSag }: Props) {
         <p className="field-sub">{formatIDagSubtitle()}</p>
       </header>
 
-      <article className="naeste-card">
-        <div className="naeste-label">NÆSTE</div>
-        <button
-          type="button"
-          className="naeste-addr-btn no-swipe"
-          onClick={() => onOpenSag(next.id)}
-        >
-          <h2 className="naeste-addr">
-            {next.address}, {next.city}
-          </h2>
-        </button>
-        <p className="naeste-svc">
-          {next.service} · {next.detail}
-        </p>
-        <p className="naeste-slot">
-          <IconClock size={16} />
-          <span>{next.slot}</span>
-        </p>
-        {runningHere ? (
-          <p className="naeste-live" aria-live="polite">
-            I gang {liveLabel}
-          </p>
-        ) : null}
-        {closed ? (
-          <p className="naeste-live naeste-closed" aria-live="polite">
-            {formatSamletTid(totalMs)}
-          </p>
-        ) : null}
-        {error ? <p className="error">{error}</p> : null}
-        <div className="naeste-actions">
+      <div className="idag-layout">
+        <article className="naeste-card">
+          <div className="naeste-label">NÆSTE</div>
           <button
             type="button"
-            className="btn-field btn-field-primary no-swipe"
-            disabled={busy}
-            onClick={() => void onPrimary()}
+            className="naeste-addr-btn no-swipe"
+            onClick={() => onOpenSag(next.id)}
           >
-            {primaryLabel}
+            <h2 className="naeste-addr">
+              {next.address}, {next.city}
+            </h2>
           </button>
-          <a href={`tel:${next.phone}`} className="btn-field btn-field-outline no-swipe">
-            Ring kunden
-          </a>
-        </div>
-      </article>
+          <p className="naeste-svc">
+            {next.service} · {next.detail}
+          </p>
+          <p className="naeste-slot">
+            <IconClock size={16} />
+            <span>{next.slot}</span>
+          </p>
+          {runningHere ? (
+            <p className="naeste-live" aria-live="polite">
+              I gang {liveLabel}
+            </p>
+          ) : null}
+          {closed ? (
+            <p className="naeste-live naeste-closed" aria-live="polite">
+              {formatSamletTid(totalMs)}
+            </p>
+          ) : null}
+          {error ? <p className="error">{error}</p> : null}
+          <div className="naeste-actions">
+            <button
+              type="button"
+              className="btn-field btn-field-primary no-swipe"
+              disabled={busy}
+              onClick={() => void onPrimary()}
+            >
+              {primaryLabel}
+            </button>
+            <a href={`tel:${next.phone}`} className="btn-field btn-field-outline no-swipe">
+              Ring kunden
+            </a>
+          </div>
+        </article>
 
-      <ul className="rest-list">
-        {DEMO_REST.map((row) => (
-          <li key={row.id} className="rest-row">
-            <IconCal size={18} />
-            <span>{row.line}</span>
-          </li>
-        ))}
-      </ul>
+        <ul className="rest-list">
+          {DEMO_REST.map((row) => (
+            <li key={row.id} className="rest-row">
+              <IconCal size={18} />
+              <span>{row.line}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

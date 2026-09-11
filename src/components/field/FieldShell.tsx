@@ -26,6 +26,8 @@ const TAB_INDEX: Record<FieldTabId, number> = {
   mere: 3,
 };
 
+const TAB_IDS = FIELD_TABS.map((t) => t.id);
+
 function tabFromParam(raw: string | null): FieldTabId {
   if (raw === "uge" || raw === "sager" || raw === "mere" || raw === "idag") return raw;
   return "idag";
@@ -38,7 +40,8 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
   const [page, setPage] = useState(TAB_INDEX[initialTab]);
   const [demoSag, setDemoSag] = useState(false);
   const pagerRef = useRef<HTMLDivElement>(null);
-  const lockSwipe = useRef(false);
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
 
   const scrollTo = useCallback((idx: number, smooth = true) => {
     const el = pagerRef.current;
@@ -86,21 +89,25 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
     router.push("/app/sag/" + id);
   }
 
-  function onTouchStartCapture(e: React.TouchEvent) {
-    const t = e.target as HTMLElement | null;
-    if (t?.closest?.(".no-swipe")) {
-      lockSwipe.current = true;
-      if (pagerRef.current) pagerRef.current.style.overflowX = "hidden";
-    } else {
-      lockSwipe.current = false;
-    }
+  function onSwipeStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    swipeStartX.current = t.clientX;
+    swipeStartY.current = t.clientY;
   }
 
-  function onTouchEndCapture() {
-    if (lockSwipe.current && pagerRef.current) {
-      pagerRef.current.style.overflowX = "";
-      lockSwipe.current = false;
-    }
+  function onSwipeEnd(e: React.TouchEvent) {
+    const startX = swipeStartX.current;
+    const startY = swipeStartY.current;
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+    if (startX == null || startY == null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    const next = dx < 0 ? page + 1 : page - 1;
+    if (next < 0 || next >= TAB_IDS.length) return;
+    goTab(TAB_IDS[next]);
   }
 
   if (demoSag) {
@@ -115,14 +122,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
 
   return (
     <div className="field-root">
-      <div className="field-edge-guard" aria-hidden />
-      <div
-        className="field-pager"
-        ref={pagerRef}
-        onTouchStartCapture={onTouchStartCapture}
-        onTouchEndCapture={onTouchEndCapture}
-        onTouchCancelCapture={onTouchEndCapture}
-      >
+      <div className="field-pager" ref={pagerRef}>
         <section className="field-page" aria-label="I dag">
           <IDagPage onOpenSag={openSag} />
         </section>
@@ -136,6 +136,19 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
           <MerePage isAdmin={isAdmin} logoutAction={logoutAction} />
         </section>
       </div>
+
+      {/* Dedicated ~1cm black thumb-swipe strip ABOVE tabs — owns horizontal pan */}
+      <div
+        className="field-swipe-zone"
+        role="presentation"
+        aria-hidden
+        onTouchStart={onSwipeStart}
+        onTouchEnd={onSwipeEnd}
+        onTouchCancel={() => {
+          swipeStartX.current = null;
+          swipeStartY.current = null;
+        }}
+      />
 
       <nav className="field-tabs" aria-label="Hovedmenu">
         {FIELD_TABS.map((t, i) => (
