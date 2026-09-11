@@ -40,8 +40,11 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
   const [page, setPage] = useState(TAB_INDEX[initialTab]);
   const [demoSag, setDemoSag] = useState(false);
   const pagerRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef(page);
   const swipeStartX = useRef<number | null>(null);
   const swipeStartY = useRef<number | null>(null);
+  const swipePointerId = useRef<number | null>(null);
+  pageRef.current = page;
 
   const scrollTo = useCallback((idx: number, smooth = true) => {
     const el = pagerRef.current;
@@ -89,25 +92,43 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
     router.push("/app/sag/" + id);
   }
 
-  function onSwipeStart(e: React.TouchEvent) {
-    const t = e.touches[0];
-    swipeStartX.current = t.clientX;
-    swipeStartY.current = t.clientY;
-  }
-
-  function onSwipeEnd(e: React.TouchEvent) {
+  function finishSwipe(clientX: number, clientY: number) {
     const startX = swipeStartX.current;
     const startY = swipeStartY.current;
     swipeStartX.current = null;
     swipeStartY.current = null;
+    swipePointerId.current = null;
     if (startX == null || startY == null) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - startX;
-    const dy = t.clientY - startY;
-    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-    const next = dx < 0 ? page + 1 : page - 1;
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+    const next = dx < 0 ? pageRef.current + 1 : pageRef.current - 1;
     if (next < 0 || next >= TAB_IDS.length) return;
     goTab(TAB_IDS[next]);
+  }
+
+  function onSwipePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    swipePointerId.current = e.pointerId;
+    swipeStartX.current = e.clientX;
+    swipeStartY.current = e.clientY;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function onSwipePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (swipePointerId.current != null && e.pointerId !== swipePointerId.current) return;
+    finishSwipe(e.clientX, e.clientY);
+  }
+
+  function onSwipePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
+    if (swipePointerId.current != null && e.pointerId !== swipePointerId.current) return;
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+    swipePointerId.current = null;
   }
 
   if (demoSag) {
@@ -142,12 +163,9 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
         className="field-swipe-zone"
         role="presentation"
         aria-hidden
-        onTouchStart={onSwipeStart}
-        onTouchEnd={onSwipeEnd}
-        onTouchCancel={() => {
-          swipeStartX.current = null;
-          swipeStartY.current = null;
-        }}
+        onPointerDown={onSwipePointerDown}
+        onPointerUp={onSwipePointerUp}
+        onPointerCancel={onSwipePointerCancel}
       />
 
       <nav className="field-tabs" aria-label="Hovedmenu">
