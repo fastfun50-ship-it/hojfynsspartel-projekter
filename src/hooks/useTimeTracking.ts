@@ -156,6 +156,30 @@ export function useTimeTracking(sagId?: string) {
     }
   }
 
+
+  async function reopen(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const data = await api<{
+        active: TimeSession | null;
+        summary: SagTimeSummary;
+        closedIds: string[];
+      }>("/api/time/reopen", {
+        method: "POST",
+        body: JSON.stringify({ sagId: id }),
+      });
+      setActive(data.active);
+      setSummary(data.summary);
+      setClosedIds(data.closedIds || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Genåbn fejlede");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function patchSession(
     sessionId: string,
     patch: { started_at?: string; ended_at?: string | null },
@@ -188,6 +212,7 @@ export function useTimeTracking(sagId?: string) {
     start,
     stop,
     close,
+    reopen,
     patchSession,
     runningHere,
     runningElsewhere,

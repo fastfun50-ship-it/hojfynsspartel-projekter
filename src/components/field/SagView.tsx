@@ -60,6 +60,7 @@ export default function SagView({
     start,
     stop,
     close,
+    reopen,
     patchSession,
     runningHere,
     closed,
@@ -155,6 +156,14 @@ export default function SagView({
     if (!confirm("Afslut sag og lås tiden?")) return;
     try {
       await close(sagId);
+    } catch {
+      /* surfaced */
+    }
+  }
+
+  async function onReopenSag() {
+    try {
+      await reopen(sagId);
     } catch {
       /* surfaced */
     }
@@ -293,7 +302,17 @@ export default function SagView({
             Afslut sag
           </button>
         ) : (
-          <p className="sag-closed-note">{formatSamletTid(totalMs)}</p>
+          <>
+            <p className="sag-closed-note">{formatSamletTid(totalMs)}</p>
+            <button
+              type="button"
+              className="btn-field btn-field-outline no-swipe"
+              disabled={busyTime}
+              onClick={() => void onReopenSag()}
+            >
+              Genåbn sag
+            </button>
+          </>
         )}
       </div>
 

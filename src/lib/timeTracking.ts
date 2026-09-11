@@ -252,3 +252,26 @@ export async function overviewForUser(db: Db, userId: string) {
   }
   return { active, activeSummary, closedIds };
 }
+
+export async function reopenSag(
+  db: Db,
+  userId: string,
+  sagId: string,
+): Promise<SagTimeSummary> {
+  const now = new Date().toISOString();
+  const existing = await getSagState(db, sagId);
+  if (existing) {
+    await db.run(
+      "UPDATE field_sag_state SET status = 'open', closed_at = NULL, closed_by = NULL, updated_at = ? WHERE sag_id = ?",
+      [now, sagId],
+    );
+  } else {
+    await db.run(
+      `INSERT INTO field_sag_state (sag_id, status, closed_at, closed_by, updated_at)
+       VALUES (?, 'open', NULL, NULL, ?)`,
+      [sagId, now],
+    );
+  }
+  return summarizeSag(db, sagId, userId);
+}
+
