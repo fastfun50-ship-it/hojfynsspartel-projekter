@@ -73,8 +73,11 @@ export default function ProjectDetailClient({
       project.status === "skjult" ||
       needsSiteUpdate);
 
-  const showMesterCta =
-    !isAdmin && !pendingFile && (project.status === "kladde" || needsSiteUpdate);
+  const showSendCta =
+    !isAdmin && !pendingFile && project.status === "kladde";
+  const showUpdateCta =
+    !isAdmin && !pendingFile && needsSiteUpdate;
+  const showMesterCta = showSendCta || showUpdateCta;
 
   const showCtaBar = canAdminPublish || showMesterCta;
   const showReject = isAdmin && project.status === "afventer_godkendelse" && !pendingFile;
@@ -532,14 +535,36 @@ export default function ProjectDetailClient({
               {busy ? "Publicerer…" : "Publicér"}
             </button>
           ) : null}
-          {showMesterCta ? (
+          {showSendCta ? (
             <button
               type="button"
               className="btn btn-primary btn-xl"
               disabled={busy}
               onClick={() => void submit()}
             >
-              {busy ? "Sender…" : "Læg på siden"}
+              <span className="sticky-cta-label">
+                <span className="sticky-cta-title">
+                  {busy ? "Sender…" : "Send til godkendelse"}
+                </span>
+                <span className="sticky-cta-sub">Læg på siden</span>
+              </span>
+            </button>
+          ) : null}
+          {showUpdateCta ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-xl"
+              disabled={busy}
+              onClick={() => void submit()}
+            >
+              <span className="sticky-cta-label">
+                <span className="sticky-cta-title">
+                  {busy ? "Sender…" : "Opdatér på siden"}
+                </span>
+                <span className="sticky-cta-sub">
+                  Sendes til godkendelse igen
+                </span>
+              </span>
             </button>
           ) : null}
         </div>

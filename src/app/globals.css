@@ -413,6 +413,19 @@ a:hover { text-decoration: underline; }
 .sticky-cta .btn {
   box-shadow: 0 6px 24px rgba(0,0,0,0.45);
 }
+.sticky-cta-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  line-height: 1.15;
+}
+.sticky-cta-title { font-size: 1.15rem; font-weight: 800; }
+.sticky-cta-sub {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
 .has-sticky-cta {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
