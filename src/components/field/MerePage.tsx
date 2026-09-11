@@ -1,7 +1,9 @@
 "use client";
 
+/* Native <a href> required: iOS field-pager swallows router.push / client Link nav. */
+/* eslint-disable @next/next/no-html-link-for-pages */
+
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 
 type Props = {
   isAdmin: boolean;
@@ -51,7 +53,6 @@ function IconLive() {
 }
 
 export default function MerePage({ isAdmin, logoutAction }: Props) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -64,11 +65,6 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  function go(href: string) {
-    setOpen(false);
-    router.push(href);
-  }
-
   return (
     <div className="field-scroll">
       <header className="field-header">
@@ -77,38 +73,30 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
       </header>
 
       <div className="mere-stack">
-        <button type="button" className="mere-row no-swipe" onClick={() => go("/app/projekter/ny")}>
+        <a href="/app/projekter/ny" className="mere-row no-swipe">
           <IconPlus />
           <span>Nyt job</span>
-        </button>
-        <button type="button" className="mere-row no-swipe" onClick={() => go("/projekter")}>
+        </a>
+        <a href="/projekter" className="mere-row no-swipe">
           <IconEye />
           <span>Se sitet</span>
-        </button>
-        {isAdmin ? (
-          <button
-            type="button"
-            className="mere-row no-swipe"
-            onClick={() => go("/app/admin/indstillinger")}
-          >
-            <IconTag />
-            <span>Priser</span>
-          </button>
-        ) : null}
+        </a>
+        <a href="/app/admin/indstillinger" className="mere-row no-swipe">
+          <IconTag />
+          <span>Priser</span>
+        </a>
 
         <div className="mere-divider" />
         <p className="mere-legacy-label">Gammelt / admin</p>
 
-        <button type="button" className="mere-row mere-row-muted no-swipe" onClick={() => go("/app/projekter")}>
+        <a href="/app/projekter" className="mere-row mere-row-muted no-swipe">
           <IconGrid />
           <span>Projekter (grid)</span>
-        </button>
-        {isAdmin ? (
-          <button type="button" className="mere-row mere-row-muted no-swipe" onClick={() => go("/app/admin")}>
-            <IconLive />
-            <span>På siden / admin</span>
-          </button>
-        ) : null}
+        </a>
+        <a href="/app/admin" className="mere-row mere-row-muted no-swipe">
+          <IconLive />
+          <span>På siden / admin</span>
+        </a>
 
         <div className="mere-more" ref={menuRef}>
           <button
@@ -123,9 +111,9 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
           {open ? (
             <div className="more-menu" role="menu">
               {isAdmin ? (
-                <button type="button" role="menuitem" className="more-logout" onClick={() => go("/app/admin/indstillinger")}>
+                <a href="/app/admin/indstillinger" role="menuitem" onClick={() => setOpen(false)}>
                   Firma
-                </button>
+                </a>
               ) : null}
               <form action={logoutAction}>
                 <button type="submit" role="menuitem" className="more-logout">

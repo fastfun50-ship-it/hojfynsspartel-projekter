@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FIELD_TABS,
@@ -77,6 +77,17 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
     };
   }, []);
 
+  /* Keep field-page-active in sync with scroll position before paint (iOS taps). */
+  useLayoutEffect(() => {
+    const el = pagerRef.current;
+    if (!el) return;
+    const w = el.clientWidth || 1;
+    const target = page * w;
+    if (Math.abs(el.scrollLeft - target) > 1) {
+      el.scrollTo({ left: target, behavior: "auto" });
+    }
+  }, [page]);
+
   function goTab(id: FieldTabId) {
     const idx = TAB_INDEX[id];
     setPage(idx);
@@ -148,6 +159,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
           className={"field-page" + (page === 0 ? " field-page-active" : "")}
           aria-label="I dag"
           aria-hidden={page !== 0}
+          inert={page !== 0 ? true : undefined}
         >
           <IDagPage onOpenSag={openSag} />
         </section>
@@ -155,6 +167,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
           className={"field-page" + (page === 1 ? " field-page-active" : "")}
           aria-label="Uge"
           aria-hidden={page !== 1}
+          inert={page !== 1 ? true : undefined}
         >
           <UgePage onOpenSag={openSag} />
         </section>
@@ -162,6 +175,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
           className={"field-page" + (page === 2 ? " field-page-active" : "")}
           aria-label="Sager"
           aria-hidden={page !== 2}
+          inert={page !== 2 ? true : undefined}
         >
           <SagerPage projects={projects} onOpenSag={openSag} />
         </section>
@@ -169,6 +183,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
           className={"field-page" + (page === 3 ? " field-page-active" : "")}
           aria-label="Mere"
           aria-hidden={page !== 3}
+          inert={page !== 3 ? true : undefined}
         >
           <MerePage isAdmin={isAdmin} logoutAction={logoutAction} />
         </section>
