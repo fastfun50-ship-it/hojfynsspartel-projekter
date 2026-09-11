@@ -43,7 +43,7 @@ export const IMAGE_TYPE_LABELS: Record<string, string> = {
   efter: "Efter",
 };
 
-export const MAX_IMAGE_EDGE = 2000;
+export const MAX_IMAGE_EDGE = 2400;
 
 export function hasRole(roles: string[], role: "mester" | "admin"): boolean {
   return roles.includes(role) || roles.includes("both");

@@ -31,7 +31,7 @@ export async function processAndStoreImage(
       fit: "inside",
       withoutEnlargement: true,
     })
-    .jpeg({ quality: 82, mozjpeg: true })
+    .jpeg({ quality: 90, mozjpeg: true })
     .toBuffer({ resolveWithObject: true });
 
   const { data, info } = resized;

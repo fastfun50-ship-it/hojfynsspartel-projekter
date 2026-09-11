@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Kamera v1: 3×3 gitter + vaterpas + ghost (overlayUrl) + samme cover-crop.
- * v1.1 (ikke her): auto-align / feature matching.
+ * Kamera: 3x3 gitter + vaterpas + ghost (overlayUrl) + fuld frame capture.
+ * Overlay: Vis før toggle, ~40–50% transparent — not a dark scrim.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -15,6 +15,8 @@ type Props = {
 };
 
 type Level = "green" | "yellow" | "red" | "off";
+
+const DEFAULT_OVERLAY_OPACITY = 0.45;
 
 function levelFromAngles(gamma: number | null, beta: number | null): Level {
   if (gamma == null || beta == null || Number.isNaN(gamma) || Number.isNaN(beta)) {
@@ -43,6 +45,8 @@ export default function CameraCapture({
   const [usingNative, setUsingNative] = useState(false);
   const [level, setLevel] = useState<Level>("off");
   const [confirmSkew, setConfirmSkew] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [overlayOpacity, setOverlayOpacity] = useState(DEFAULT_OVERLAY_OPACITY);
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -84,6 +88,8 @@ export default function CameraCapture({
       setConfirmSkew(false);
       return;
     }
+    setShowOverlay(true);
+    setOverlayOpacity(DEFAULT_OVERLAY_OPACITY);
     void startStream();
     return () => stopStream();
   }, [open, startStream, stopStream]);
@@ -125,35 +131,18 @@ export default function CameraCapture({
     return () => window.removeEventListener("deviceorientation", onOrient, true);
   }, [open, usingNative]);
 
-  function captureCoverCrop() {
+  /** Full camera frame — never a thumbnail or display-size center crop. */
+  function captureFullFrame() {
     const video = videoRef.current;
-    const stage = stageRef.current;
     if (!video || !ready) return null;
-    const vw = video.videoWidth || 1280;
-    const vh = video.videoHeight || 720;
-    const sw = stage?.clientWidth || vw;
-    const sh = stage?.clientHeight || vh;
-    const scale = Math.max(sw / vw, sh / vh);
-    const cropW = sw / scale;
-    const cropH = sh / scale;
-    const sx = (vw - cropW) / 2;
-    const sy = (vh - cropH) / 2;
-
-    let outW = Math.round(cropW);
-    let outH = Math.round(cropH);
-    const long = Math.max(outW, outH);
-    if (long > 2000) {
-      const f = 2000 / long;
-      outW = Math.round(outW * f);
-      outH = Math.round(outH * f);
-    }
-
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
     const canvas = document.createElement("canvas");
-    canvas.width = outW;
-    canvas.height = outH;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, outW, outH);
+    ctx.drawImage(video, 0, 0, w, h);
     return canvas;
   }
 
@@ -169,7 +158,7 @@ export default function CameraCapture({
         onCapture(file);
       },
       "image/jpeg",
-      0.82,
+      0.9,
     );
   }
 
@@ -179,7 +168,7 @@ export default function CameraCapture({
       setConfirmSkew(true);
       return;
     }
-    const canvas = captureCoverCrop();
+    const canvas = captureFullFrame();
     if (!canvas) return;
     emitBlob(canvas);
   }
@@ -194,6 +183,7 @@ export default function CameraCapture({
 
   if (!open) return null;
 
+  const hasOverlay = Boolean(overlayUrl);
   const levelLabel =
     level === "green"
       ? "Lige"
@@ -221,9 +211,14 @@ export default function CameraCapture({
             muted
             autoPlay
           />
-          {overlayUrl ? (
+          {hasOverlay && showOverlay ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={overlayUrl} alt="" className="cam-overlay" />
+            <img
+              src={overlayUrl!}
+              alt=""
+              className="cam-overlay"
+              style={{ opacity: overlayOpacity }}
+            />
           ) : null}
           <div className="cam-grid" aria-hidden="true">
             <span className="cam-grid-v" style={{ left: "33.333%" }} />
@@ -252,6 +247,36 @@ export default function CameraCapture({
               >
                 Prøv igen
               </button>
+            </div>
+          ) : null}
+          {hasOverlay ? (
+            <div className="cam-overlay-controls">
+              <button
+                type="button"
+                className={
+                  "cam-overlay-toggle" + (showOverlay ? " is-on" : "")
+                }
+                aria-pressed={showOverlay}
+                onClick={() => setShowOverlay((v) => !v)}
+              >
+                Vis før
+              </button>
+              {showOverlay ? (
+                <label className="cam-overlay-slider">
+                  <span className="cam-overlay-slider-label">Styrke</span>
+                  <input
+                    type="range"
+                    min={0.2}
+                    max={0.7}
+                    step={0.05}
+                    value={overlayOpacity}
+                    onChange={(e) =>
+                      setOverlayOpacity(Number(e.target.value))
+                    }
+                    aria-label="Før-overlay styrke"
+                  />
+                </label>
+              ) : null}
             </div>
           ) : null}
         </div>

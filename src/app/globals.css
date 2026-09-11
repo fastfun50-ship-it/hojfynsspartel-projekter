@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
   --bg: #0B0B0B;
@@ -257,9 +257,59 @@ a:hover { text-decoration: underline; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.38;
+  /* Transparent før layer on live camera — NOT a dark scrim/shadow */
+  opacity: 0.45;
   pointer-events: none;
   mix-blend-mode: normal;
+  filter: none;
+  background: transparent;
+  box-shadow: none;
+}
+.cam-overlay-controls {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.85rem;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  pointer-events: auto;
+}
+.cam-overlay-toggle {
+  background: rgba(26, 26, 26, 0.72);
+  color: var(--cream);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.cam-overlay-toggle.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cam-overlay-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 140px;
+  color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.cam-overlay-slider-label {
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.cam-overlay-slider input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  height: 1.25rem;
 }
 .cam-hint {
   position: absolute;
