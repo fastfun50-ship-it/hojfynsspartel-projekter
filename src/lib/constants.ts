@@ -1,7 +1,7 @@
 export const FIRMA_ID = "hojfynsspartel";
 export const FIRMA_NAME = "Højfynsspartel";
 export const SESSION_COOKIE = "hfs_session";
-export const DEFAULT_PROJECT_TITLE = "Test facade / spartel";
+export const DEFAULT_PROJECT_TITLE = "Ny sag";
 
 export const STATUSES = [
   "kladde",

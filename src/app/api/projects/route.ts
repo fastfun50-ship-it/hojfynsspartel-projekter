@@ -38,9 +38,19 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const title = String(body.title || DEFAULT_PROJECT_TITLE).trim() || DEFAULT_PROJECT_TITLE;
-  const category = (String(body.category || "facade") as Category);
-  const note = body.note ? String(body.note) : null;
+  const address = body.address != null ? String(body.address).trim() : "";
+  const phone = body.phone != null ? String(body.phone).trim() : "";
+  const customerName = body.customerName != null ? String(body.customerName).trim() : "";
+  // title in DB = address (fallback body.title, then DEFAULT_PROJECT_TITLE / «Ny sag»)
+  const title =
+    address ||
+    String(body.title || DEFAULT_PROJECT_TITLE).trim() ||
+    DEFAULT_PROJECT_TITLE;
+  const category = "andet" as Category;
+  const noteParts: string[] = [];
+  if (phone) noteParts.push(`Tlf: ${phone}`);
+  if (customerName) noteParts.push(`Navn: ${customerName}`);
+  const note = noteParts.length ? noteParts.join("\n") : body.note ? String(body.note) : null;
   const now = new Date().toISOString();
   const id = randomUUID();
 

@@ -2,12 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { api } from "@/lib/client";
-import { CATEGORIES, CATEGORY_LABELS, DEFAULT_PROJECT_TITLE } from "@/lib/constants";
 
 export default function NewProjectPage() {
-  const [title, setTitle] = useState(DEFAULT_PROJECT_TITLE);
-  const [category, setCategory] = useState("facade");
-  const [note, setNote] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +17,7 @@ export default function NewProjectPage() {
     try {
       const data = await api<{ project: { id: string } }>("/api/projects", {
         method: "POST",
-        body: JSON.stringify({ title, category, note }),
+        body: JSON.stringify({ address, phone, customerName }),
       });
       // Hard navigation so the detail page hits a fresh request (avoids soft-nav
       // caching / isolate mismatch after create on serverless).
@@ -31,23 +30,37 @@ export default function NewProjectPage() {
 
   return (
     <form className="stack card" onSubmit={onSubmit}>
-      <h1 className="page-title">Nyt projekt</h1>
+      <h1 className="page-title">Ny sag</h1>
       {error ? <div className="error">{error}</div> : null}
       <div>
-        <label className="label">Titel</label>
-        <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <label className="label">Adresse</label>
+        <input
+          className="input"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          required
+          autoComplete="street-address"
+        />
       </div>
       <div>
-        <label className="label">Kategori</label>
-        <select className="select" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
-          ))}
-        </select>
+        <label className="label">Telefon</label>
+        <input
+          className="input"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+          autoComplete="tel"
+        />
       </div>
       <div>
-        <label className="label">Note (valgfri)</label>
-        <textarea className="textarea" value={note} onChange={(e) => setNote(e.target.value)} />
+        <label className="label">Navn (valgfri)</label>
+        <input
+          className="input"
+          value={customerName}
+          onChange={(e) => setCustomerName(e.target.value)}
+          autoComplete="name"
+        />
       </div>
       <button className="btn btn-primary" disabled={loading} type="submit">
         {loading ? "Opretter…" : "Opret"}

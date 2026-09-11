@@ -75,7 +75,7 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
       <div className="mere-stack">
         <a href="/app/projekter/ny" className="mere-row no-swipe">
           <IconPlus />
-          <span>Nyt job</span>
+          <span>Ny sag</span>
         </a>
         <a href="/projekter" className="mere-row no-swipe">
           <IconEye />
