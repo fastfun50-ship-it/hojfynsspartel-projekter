@@ -41,10 +41,21 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
   const [demoSag, setDemoSag] = useState(false);
   const pagerRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef(page);
+  const swipeDraggingRef = useRef(false);
   const swipeStartX = useRef<number | null>(null);
   const swipeStartY = useRef<number | null>(null);
+  const swipeStartScroll = useRef(0);
+  const swipeStartPage = useRef(0);
   const swipePointerId = useRef<number | null>(null);
+  const swipeLocked = useRef(false);
+  const swipeLastX = useRef(0);
+  const swipeLastT = useRef(0);
+  const swipeVelocity = useRef(0);
   pageRef.current = page;
+
+  const EDGE_GUARD_PX = 20;
+  const ACTIVATE_PX = 10;
+  const FLING_VX = 0.45; /* px/ms finger velocity */
 
   const scrollTo = useCallback((idx: number, smooth = true) => {
     const el = pagerRef.current;
@@ -65,6 +76,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
+        if (swipeDraggingRef.current) return;
         const w = el.clientWidth || 1;
         const idx = Math.round(el.scrollLeft / w);
         setPage((p) => (p === idx ? p : idx));
@@ -79,6 +91,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
 
   /* Keep field-page-active in sync with scroll position before paint (iOS taps). */
   useLayoutEffect(() => {
+    if (swipeDraggingRef.current) return;
     const el = pagerRef.current;
     if (!el) return;
     const w = el.clientWidth || 1;
@@ -103,43 +116,119 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
     router.push("/app/sag/" + id);
   }
 
-  function finishSwipe(clientX: number, clientY: number) {
-    const startX = swipeStartX.current;
-    const startY = swipeStartY.current;
+  function clearSwipe() {
     swipeStartX.current = null;
     swipeStartY.current = null;
     swipePointerId.current = null;
-    if (startX == null || startY == null) return;
-    const dx = clientX - startX;
-    const dy = clientY - startY;
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
-    const next = dx < 0 ? pageRef.current + 1 : pageRef.current - 1;
-    if (next < 0 || next >= TAB_IDS.length) return;
-    goTab(TAB_IDS[next]);
+    swipeLocked.current = false;
+    swipeDraggingRef.current = false;
+    swipeVelocity.current = 0;
+    pagerRef.current?.classList.remove("field-pager-dragging");
   }
 
   function onSwipePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    const zone = e.currentTarget;
+    const left = zone.getBoundingClientRect().left;
+    /* Leave left ~20px for iOS edge back-swipe */
+    if (e.clientX - left < EDGE_GUARD_PX) return;
+    const el = pagerRef.current;
+    if (!el) return;
     swipePointerId.current = e.pointerId;
     swipeStartX.current = e.clientX;
     swipeStartY.current = e.clientY;
+    swipeStartScroll.current = el.scrollLeft;
+    swipeStartPage.current = pageRef.current;
+    swipeLocked.current = false;
+    swipeDraggingRef.current = false;
+    swipeLastX.current = e.clientX;
+    swipeLastT.current = e.timeStamp;
+    swipeVelocity.current = 0;
     try {
-      e.currentTarget.setPointerCapture(e.pointerId);
+      zone.setPointerCapture(e.pointerId);
     } catch {
       /* ignore */
     }
   }
 
+  function onSwipePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (swipePointerId.current != null && e.pointerId !== swipePointerId.current) return;
+    const startX = swipeStartX.current;
+    const startY = swipeStartY.current;
+    const el = pagerRef.current;
+    if (startX == null || startY == null || !el) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dt = Math.max(1, e.timeStamp - swipeLastT.current);
+    swipeVelocity.current = (e.clientX - swipeLastX.current) / dt;
+    swipeLastX.current = e.clientX;
+    swipeLastT.current = e.timeStamp;
+
+    if (!swipeLocked.current) {
+      if (Math.abs(dx) < ACTIVATE_PX && Math.abs(dy) < ACTIVATE_PX) return;
+      /* Vertical dominance — abort; strip is empty so nothing to scroll */
+      if (Math.abs(dx) < Math.abs(dy) * 1.1) {
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+        clearSwipe();
+        return;
+      }
+      if (Math.abs(dx) < ACTIVATE_PX) return;
+      swipeLocked.current = true;
+      swipeDraggingRef.current = true;
+      el.classList.add("field-pager-dragging");
+    }
+
+    /* Live 1:1 drag — finger left → next page (scrollLeft up) */
+    const w = el.clientWidth || 1;
+    const max = (TAB_IDS.length - 1) * w;
+    const nextLeft = Math.max(0, Math.min(max, swipeStartScroll.current - dx));
+    el.scrollLeft = nextLeft;
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function finishSwipeSnap() {
+    const el = pagerRef.current;
+    const locked = swipeLocked.current;
+    const startPage = swipeStartPage.current;
+    const vx = swipeVelocity.current;
+    clearSwipe();
+    if (!el || !locked) return;
+
+    const w = el.clientWidth || 1;
+    let target = Math.round(el.scrollLeft / w);
+    /* Fling: even short distance commits next/prev from start page */
+    if (vx < -FLING_VX) target = Math.min(TAB_IDS.length - 1, startPage + 1);
+    else if (vx > FLING_VX) target = Math.max(0, startPage - 1);
+    target = Math.max(0, Math.min(TAB_IDS.length - 1, target));
+    goTab(TAB_IDS[target]);
+  }
+
   function onSwipePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     if (swipePointerId.current != null && e.pointerId !== swipePointerId.current) return;
-    finishSwipe(e.clientX, e.clientY);
+    /* Include last sample in velocity when possible */
+    if (swipeLocked.current && swipeStartX.current != null) {
+      const dt = Math.max(1, e.timeStamp - swipeLastT.current);
+      if (dt < 48) {
+        swipeVelocity.current = (e.clientX - swipeLastX.current) / dt;
+      }
+    }
+    finishSwipeSnap();
   }
 
   function onSwipePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
     if (swipePointerId.current != null && e.pointerId !== swipePointerId.current) return;
-    swipeStartX.current = null;
-    swipeStartY.current = null;
-    swipePointerId.current = null;
+    const el = pagerRef.current;
+    const locked = swipeLocked.current;
+    const startPage = swipeStartPage.current;
+    clearSwipe();
+    if (locked && el) {
+      goTab(TAB_IDS[Math.max(0, Math.min(TAB_IDS.length - 1, startPage))]);
+    }
   }
 
   if (demoSag) {
@@ -195,6 +284,7 @@ export default function FieldShell({ isAdmin, logoutAction, projects }: Props) {
         role="presentation"
         aria-hidden
         onPointerDown={onSwipePointerDown}
+        onPointerMove={onSwipePointerMove}
         onPointerUp={onSwipePointerUp}
         onPointerCancel={onSwipePointerCancel}
       />

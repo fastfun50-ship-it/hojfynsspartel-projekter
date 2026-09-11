@@ -771,13 +771,18 @@ a:hover { text-decoration: underline; }
   padding: calc(1.1rem + env(safe-area-inset-top, 0px)) 1.25rem 1.25rem;
   box-sizing: border-box;
 }
-/* ~1cm empty black strip JUST ABOVE tab bar — thumb horizontal swipe */
+/* Live-drag: disable snap while finger is tracking the pager */
+.field-pager.field-pager-dragging {
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+/* ~1cm+ empty black strip JUST ABOVE tab bar — thumb horizontal swipe */
 .field-swipe-zone {
   position: relative;
   z-index: 35;
   flex-shrink: 0;
-  height: 42px;
-  min-height: 42px;
+  height: 52px;
+  min-height: 52px;
   width: 100%;
   background: #0B0B0B;
   border-top: 1px solid #1a1a1a;
@@ -788,6 +793,23 @@ a:hover { text-decoration: underline; }
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+}
+/* Subtle cue that the strip is swipeable (not a redesign) */
+.field-swipe-zone::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 36px;
+  height: 3px;
+  margin: -1.5px 0 0 -18px;
+  border-radius: 2px;
+  background: #F3EDE4;
+  opacity: 0.18;
+  pointer-events: none;
+}
+.field-swipe-zone:active {
+  cursor: grabbing;
 }
 .field-header { margin-bottom: 1.35rem; }
 .field-brand {
