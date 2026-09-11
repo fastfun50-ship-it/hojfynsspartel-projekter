@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { hasRole } from "@/lib/constants";
@@ -11,8 +12,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = hasRole(user.roles, "admin");
 
   return (
-    <AppChrome userName={user.name} isAdmin={isAdmin} logoutAction={logoutAction}>
-      {children}
-    </AppChrome>
+    <Suspense fallback={<div style={{ minHeight: "100dvh", background: "#0B0B0B" }} />}>
+      <AppChrome userName={user.name} isAdmin={isAdmin} logoutAction={logoutAction}>
+        {children}
+      </AppChrome>
+    </Suspense>
   );
 }

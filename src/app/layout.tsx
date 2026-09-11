@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans } from "next/font/google";
+import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-sans",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
@@ -35,7 +43,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="da" className={dmSans.className}>
+    <html lang="da" className={`${dmSans.variable} ${instrumentSerif.variable} ${dmSans.className}`}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
