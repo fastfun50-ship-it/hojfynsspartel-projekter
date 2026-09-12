@@ -1,6 +1,8 @@
 import { getDb } from "./db";
 import { FIRMA_ID } from "./constants";
 import type { Project, ProjectImage, Firm, PriceAdjustmentLog } from "./types";
+import type { RoomRow } from "./rooms";
+import { sumRoomAreas } from "./rooms";
 import { publicImageUrl } from "./storage";
 
 export async function getFirm(): Promise<Firm | undefined> {
@@ -90,4 +92,23 @@ export async function attachCovers(projects: Project[]): Promise<ProjectWithCove
       return { ...p, coverUrl: cover ? publicImageUrl(cover.path) : null };
     }),
   );
+}
+
+
+export async function listRoomsForProject(projectId: string): Promise<RoomRow[]> {
+  const db = await getDb();
+  return db.all<RoomRow>(
+    "SELECT * FROM rooms WHERE project_id = ? ORDER BY sort_order ASC, created_at ASC",
+    [projectId],
+  );
+}
+
+export async function getRoom(roomId: string): Promise<RoomRow | undefined> {
+  const db = await getDb();
+  return db.get<RoomRow>("SELECT * FROM rooms WHERE id = ?", [roomId]);
+}
+
+export async function projectTotalKvm(projectId: string): Promise<number> {
+  const rooms = await listRoomsForProject(projectId);
+  return sumRoomAreas(rooms);
 }

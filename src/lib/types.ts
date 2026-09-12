@@ -57,6 +57,11 @@ export type Project = {
   created_at: string;
   updated_at: string;
   published_at: string | null;
+  /** Field PWA job status (light column). */
+  field_status?: string | null;
+  customer_name?: string | null;
+  phone?: string | null;
+  city?: string | null;
 };
 
 export type ProjectImage = {
@@ -66,6 +71,8 @@ export type ProjectImage = {
   path: string;
   /** Aligned efter (slider). Null/absent for foer/under or legacy rows. */
   aligned_path?: string | null;
+  /** Optional room association for Foto/Resultat per rum. */
+  room_id?: string | null;
   width: number | null;
   height: number | null;
   created_by: string;

@@ -4,10 +4,13 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 
 import { useEffect, useRef, useState } from "react";
+import type { JobListItem } from "./JobPage";
+import { FIELD_STATUS_LABELS } from "@/lib/fieldStatus";
 
 type Props = {
   isAdmin: boolean;
   logoutAction: () => Promise<void>;
+  activeJob?: JobListItem | null;
 };
 
 function IconPlus() {
@@ -51,8 +54,16 @@ function IconLive() {
     </svg>
   );
 }
+function IconClock() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
 
-export default function MerePage({ isAdmin, logoutAction }: Props) {
+export default function MerePage({ isAdmin, logoutAction, activeJob }: Props) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -69,17 +80,45 @@ export default function MerePage({ isAdmin, logoutAction }: Props) {
     <div className="field-scroll">
       <header className="field-header">
         <h1 className="field-brand">Mere</h1>
-        <p className="field-sub">Job, site og admin</p>
+        <p className="field-sub">Kunde, deling og indstillinger</p>
       </header>
+
+      {activeJob ? (
+        <section className="mere-job-card">
+          <h2 className="mere-job-name">{activeJob.customerName}</h2>
+          <p className="hint">
+            {[activeJob.title, activeJob.city].filter(Boolean).join(" · ")}
+          </p>
+          <p className="hint">
+            {FIELD_STATUS_LABELS[activeJob.fieldStatus]}
+            {activeJob.phone ? ` · ${activeJob.phone}` : ""}
+          </p>
+          {activeJob.phone ? (
+            <a href={`tel:${activeJob.phone}`} className="mere-row no-swipe" style={{ marginTop: "0.75rem" }}>
+              Ring til kunde
+            </a>
+          ) : null}
+          <a
+            href={`/app/sag/${activeJob.id}`}
+            className="mere-row no-swipe"
+            style={{ marginTop: "0.5rem" }}
+          >
+            <IconClock />
+            <span>Tid på job (Start/Stop)</span>
+          </a>
+        </section>
+      ) : (
+        <p className="hint">Vælg et job under Job for kundedetaljer.</p>
+      )}
 
       <div className="mere-stack">
         <a href="/app/projekter/ny" className="mere-row no-swipe">
           <IconPlus />
-          <span>Ny sag</span>
+          <span>Ny sag (fuld)</span>
         </a>
         <a href="/projekter" className="mere-row no-swipe">
           <IconEye />
-          <span>Se sitet</span>
+          <span>Se sitet / del-link</span>
         </a>
         <a href="/app/admin/indstillinger" className="mere-row no-swipe">
           <IconTag />

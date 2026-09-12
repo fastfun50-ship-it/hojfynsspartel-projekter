@@ -15,11 +15,20 @@ type Props = {
 function activeTab(pathname: string | null, tabParam: string | null): FieldTabId | null {
   if (!pathname) return null;
   if (pathname === "/app") {
-    if (tabParam === "uge" || tabParam === "sager" || tabParam === "mere") return tabParam;
-    return "idag";
+    if (
+      tabParam === "rum" ||
+      tabParam === "foto" ||
+      tabParam === "resultat" ||
+      tabParam === "mere" ||
+      tabParam === "job"
+    ) {
+      return tabParam;
+    }
+    if (tabParam === "idag" || tabParam === "uge" || tabParam === "sager") return "job";
+    return "job";
   }
-  if (pathname.startsWith("/app/sag")) return "sager";
-  if (pathname.startsWith("/app/projekter")) return "sager";
+  if (pathname.startsWith("/app/sag")) return "mere";
+  if (pathname.startsWith("/app/projekter")) return "mere";
   if (pathname.startsWith("/app/admin")) return "mere";
   return null;
 }
@@ -46,12 +55,16 @@ export default function AppChrome({ userName, children }: Props) {
       {!onFieldHome && !onSag ? <UndoBanner /> : null}
       {children}
       {showBottom ? (
-        <nav className="field-tabs field-tabs-fixed" aria-label="Hovedmenu">
+        <nav className="field-tabs field-tabs-5 field-tabs-fixed" aria-label="Hovedmenu">
           {FIELD_TABS.map((t) => (
             <Link
               key={t.id}
               href={"/app?tab=" + t.id}
-              className={"field-tab" + (tab === t.id ? " field-tab-active" : "")}
+              className={
+                "field-tab" +
+                (tab === t.id ? " field-tab-active" : "") +
+                (t.id === "foto" ? " field-tab-foto" : "")
+              }
             >
               <span>{t.label}</span>
               {tab === t.id ? <span className="field-tab-line" /> : null}

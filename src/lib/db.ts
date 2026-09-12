@@ -94,6 +94,18 @@ const SCHEMA_STATEMENTS = [
     closed_by TEXT,
     updated_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS rooms (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    length_m REAL,
+    width_m REAL,
+    height_m REAL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_rooms_project ON rooms(project_id)`,
 ];
 
 const SQLJS_WASM_CDN = "https://sql.js.org/dist/sql-wasm.wasm";
@@ -183,11 +195,21 @@ async function applySchema(db: Db) {
   for (const sql of SCHEMA_STATEMENTS) {
     await db.run(sql);
   }
-  // Soft migration: aligned efter for slider (ignore if column already exists)
-  try {
-    await db.run("ALTER TABLE images ADD COLUMN aligned_path TEXT");
-  } catch {
-    /* already present */
+  // Soft migrations (ignore if column already exists)
+  const soft = [
+    "ALTER TABLE images ADD COLUMN aligned_path TEXT",
+    "ALTER TABLE images ADD COLUMN room_id TEXT",
+    "ALTER TABLE projects ADD COLUMN field_status TEXT",
+    "ALTER TABLE projects ADD COLUMN customer_name TEXT",
+    "ALTER TABLE projects ADD COLUMN phone TEXT",
+    "ALTER TABLE projects ADD COLUMN city TEXT",
+  ];
+  for (const sql of soft) {
+    try {
+      await db.run(sql);
+    } catch {
+      /* already present */
+    }
   }
 }
 

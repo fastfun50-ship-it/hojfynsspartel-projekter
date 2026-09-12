@@ -78,9 +78,10 @@ export const DEMO_WEEK: Record<string, WeekSlot[]> = {
 };
 
 export const FIELD_TABS = [
-  { id: "idag", label: "I dag" },
-  { id: "uge", label: "Uge" },
-  { id: "sager", label: "Sager" },
+  { id: "job", label: "Job" },
+  { id: "rum", label: "Rum" },
+  { id: "foto", label: "Foto" },
+  { id: "resultat", label: "Resultat" },
   { id: "mere", label: "Mere" },
 ] as const;
 

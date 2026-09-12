@@ -41,6 +41,7 @@ export async function POST(req: Request) {
   const address = body.address != null ? String(body.address).trim() : "";
   const phone = body.phone != null ? String(body.phone).trim() : "";
   const customerName = body.customerName != null ? String(body.customerName).trim() : "";
+  const city = body.city != null ? String(body.city).trim() : "";
   // title in DB = address (fallback body.title, then DEFAULT_PROJECT_TITLE / «Ny sag»)
   const title =
     address ||
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
   const noteParts: string[] = [];
   if (phone) noteParts.push(`Tlf: ${phone}`);
   if (customerName) noteParts.push(`Navn: ${customerName}`);
+  if (city) noteParts.push(`By: ${city}`);
   const note = noteParts.length ? noteParts.join("\n") : body.note ? String(body.note) : null;
   const now = new Date().toISOString();
   const id = randomUUID();
@@ -60,9 +62,10 @@ export async function POST(req: Request) {
       id, firma_id, title, category, note, status,
       price_from, price_to, scope, year,
       may_show_public, show_price_on_site, reject_note,
-      created_by, created_at, updated_at, published_at
-    ) VALUES (?, ?, ?, ?, ?, 'kladde', NULL, NULL, NULL, ?, 0, 0, NULL, ?, ?, ?, NULL)`,
-    [id, FIRMA_ID, title, category, note, new Date().getFullYear(), user.id, now, now],
+      created_by, created_at, updated_at, published_at,
+      field_status, customer_name, phone, city
+    ) VALUES (?, ?, ?, ?, ?, 'kladde', NULL, NULL, NULL, ?, 0, 0, NULL, ?, ?, ?, NULL, 'mode_booket', ?, ?, ?)`,
+    [id, FIRMA_ID, title, category, note, new Date().getFullYear(), user.id, now, now, customerName || null, phone || null, city || null],
   );
 
   const project = await db.get("SELECT * FROM projects WHERE id = ?", [id]);

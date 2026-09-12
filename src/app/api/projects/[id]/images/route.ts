@@ -40,6 +40,8 @@ export async function POST(req: Request, ctx: Ctx) {
   const type = String(form.get("type") || "") as ImageType;
   const file = form.get("file");
   const aligned = form.get("aligned");
+  const roomIdRaw = form.get("room_id");
+  const room_id = roomIdRaw != null && String(roomIdRaw).trim() ? String(roomIdRaw).trim() : null;
 
   if (!IMAGE_TYPES.includes(type)) {
     return NextResponse.json({ error: "Ugyldig fototype" }, { status: 400 });
@@ -80,13 +82,14 @@ export async function POST(req: Request, ctx: Ctx) {
     const now = new Date().toISOString();
     const db = await getDb();
     await db.run(
-      "INSERT INTO images (id, project_id, type, path, aligned_path, width, height, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO images (id, project_id, type, path, aligned_path, room_id, width, height, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         imageId,
         id,
         type,
         stored.path,
         alignedPath,
+        room_id,
         stored.width,
         stored.height,
         user.id,

@@ -69,3 +69,51 @@ export function IconWave() {
     </svg>
   );
 }
+
+export function IconTabJob({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3.5" y="7" width="17" height="12" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+export function IconTabRum({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4 12h16M12 4v16" stroke="currentColor" strokeWidth="1.5" opacity="0.7" />
+    </svg>
+  );
+}
+
+export function IconTabFoto({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 8.5h3.2l1.3-2h7l1.3 2H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <circle cx="12" cy="13.5" r="3.2" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+export function IconTabResultat({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M7 4h10a2 2 0 0 1 2 2v14l-3-1.5L13 20l-3-1.5L7 20V6a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M9 9h6M9 12h6M9 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconTabMere({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}

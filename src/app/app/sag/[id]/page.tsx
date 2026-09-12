@@ -12,7 +12,7 @@ export default async function SagPage({ params }: Props) {
   if (!session.user) redirect("/login");
   const { id } = await params;
   const project = await getProject(id);
-  if (!project) redirect("/app?tab=sager");
+  if (!project) redirect("/app?tab=job");
   const images = withPublicUrls(await getProjectImages(id));
 
   return (
