@@ -5,6 +5,7 @@ export const DEMO_NEXT = {
   titleShort: "Birkevej 12",
 } as const;
 
+/** Bottom tab ids + locked labels (Job · Rum · Materialer · Resultat · Mere). */
 export const FIELD_TABS = [
   { id: "job", label: "Job" },
   { id: "rum", label: "Rum" },

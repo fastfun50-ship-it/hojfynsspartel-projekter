@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import UndoBanner from "./UndoBanner";
-import { FIELD_TABS, type FieldTabId } from "@/lib/fieldDemo";
+import { type FieldTabId } from "@/lib/fieldDemo";
+import FieldTabBar from "./field/FieldTabBar";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type Props = {
   userName: string;
@@ -41,6 +41,7 @@ export default function AppChrome({ userName, children }: Props) {
   const onFieldHome = pathname === "/app";
   const onSag = !!pathname?.startsWith("/app/sag");
   const tab = activeTab(pathname, search.get("tab"));
+  /* Field home: FieldShell owns the bar. Mere children (admin, projekter/ny, …): same FieldTabBar. */
   const showBottom = !onFieldHome && !onSag;
   const showTopbar = !onFieldHome && !onSag;
 
@@ -56,24 +57,7 @@ export default function AppChrome({ userName, children }: Props) {
       ) : null}
       {!onFieldHome && !onSag ? <UndoBanner /> : null}
       {children}
-      {showBottom ? (
-        <nav className="field-tabs field-tabs-5 field-tabs-fixed" aria-label="Hovedmenu">
-          {FIELD_TABS.map((t) => (
-            <Link
-              key={t.id}
-              href={"/app?tab=" + t.id}
-              className={
-                "field-tab" +
-                (tab === t.id ? " field-tab-active" : "") +
-                (t.id === "materialer" ? " field-tab-center" : "")
-              }
-            >
-              <span>{t.label}</span>
-              {tab === t.id ? <span className="field-tab-line" /> : null}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+      {showBottom ? <FieldTabBar active={tab} fixed /> : null}
     </div>
   );
 }

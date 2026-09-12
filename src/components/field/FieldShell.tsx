@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  FIELD_TABS,
   type FieldTabId,
   type FieldViewId,
 } from "@/lib/fieldDemo";
@@ -15,13 +14,8 @@ import FotoPage from "./FotoPage";
 import MaterialerPage from "./MaterialerPage";
 import ResultatPage from "./ResultatPage";
 import MerePage from "./MerePage";
-import {
-  IconTabJob,
-  IconTabRum,
-  IconTabMaterialer,
-  IconTabResultat,
-  IconTabMere,
-} from "./FieldIcons";
+import FieldTabBar from "./FieldTabBar";
+
 
 type Props = {
   isAdmin: boolean;
@@ -47,14 +41,6 @@ function viewFromParam(raw: string | null): FieldViewId {
   if (raw === "idag" || raw === "uge" || raw === "sager") return "job";
   return "job";
 }
-
-const TAB_ICONS: Record<FieldTabId, ReactNode> = {
-  job: <IconTabJob />,
-  rum: <IconTabRum />,
-  materialer: <IconTabMaterialer />,
-  resultat: <IconTabResultat />,
-  mere: <IconTabMere />,
-};
 
 export default function FieldShell({
   isAdmin,
@@ -196,7 +182,7 @@ export default function FieldShell({
     }
   }
 
-  /** Swipe = next/prev room — NEVER changes job or tab. */
+  /** Swipe = next/prev room â€” NEVER changes job or tab. */
   function onSwipePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (tab !== "rum" && tab !== "foto" && tab !== "resultat") return;
@@ -326,24 +312,8 @@ export default function FieldShell({
         }}
       />
 
-      <nav className="field-tabs field-tabs-5" aria-label="Hovedmenu">
-        {FIELD_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={
-              "field-tab no-swipe" +
-              (navActive === t.id ? " field-tab-active" : "") +
-              (t.id === "materialer" ? " field-tab-center" : "")
-            }
-            onClick={() => goTab(t.id)}
-          >
-            <span className="field-tab-icon">{TAB_ICONS[t.id]}</span>
-            <span>{t.label}</span>
-            {navActive === t.id ? <span className="field-tab-line" /> : null}
-          </button>
-        ))}
-      </nav>
+      <FieldTabBar active={navActive} onSelect={goTab} />
     </div>
   );
 }
+
