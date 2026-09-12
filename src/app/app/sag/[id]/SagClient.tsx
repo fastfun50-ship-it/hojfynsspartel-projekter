@@ -22,7 +22,7 @@ export default function SagClient({
       projectId={projectId}
       title={title}
       initialImages={initialImages}
-      onBack={() => router.push("/app?tab=sager")}
+      onBack={() => router.push("/app?tab=mere")}
     />
   );
 }

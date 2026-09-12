@@ -828,49 +828,6 @@ a:hover { text-decoration: underline; }
   opacity: 0.85;
 }
 
-/* I dag — NÆSTE */
-.naeste-card {
-  background: #161616;
-  border: 1px solid #C4A574;
-  border-radius: 18px;
-  padding: 1.15rem 1.15rem 1.2rem;
-  margin-bottom: 1.5rem;
-}
-.naeste-label {
-  color: #C4A574;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  margin-bottom: 0.55rem;
-}
-.naeste-addr {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #F3EDE4;
-  line-height: 1.25;
-}
-.naeste-svc {
-  margin: 0.45rem 0 0;
-  color: #F3EDE4;
-  opacity: 0.88;
-  font-size: 1rem;
-}
-.naeste-slot {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.75rem 0 1.1rem;
-  color: #C4A574;
-  font-weight: 600;
-  font-size: 0.98rem;
-}
-.naeste-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
 .btn-field {
   display: inline-flex;
   align-items: center;
@@ -901,124 +858,16 @@ a:hover { text-decoration: underline; }
 }
 a.btn-field:hover { text-decoration: none; }
 
-.rest-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.rest-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid #2a2a2a;
-  color: #F3EDE4;
-  font-size: 1rem;
-}
-.rest-row:first-child { border-top: 1px solid #2a2a2a; }
-.rest-row svg { color: #C4A574; flex-shrink: 0; }
-
-/* Uge */
-.day-chips {
-  display: flex;
-  gap: 0.55rem;
-  margin-bottom: 1.35rem;
-}
-.day-chip {
-  min-height: 40px;
-  min-width: 3.4rem;
-  padding: 0.45rem 0.95rem;
-  border-radius: 999px;
-  border: none;
-  background: #161616;
-  color: #F3EDE4;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  font-family: inherit;
-  touch-action: manipulation;
-}
-.day-chip-active {
-  background: #C4A574;
-  color: #0B0B0B;
-}
-.uge-slots { display: flex; flex-direction: column; gap: 1.25rem; }
-.uge-block { display: flex; flex-direction: column; gap: 0.55rem; }
-.uge-slot-head {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: #F3EDE4;
-  font-family: var(--font-serif), Georgia, serif;
-  font-size: 1.25rem;
-}
-.uge-slot-head svg { color: #C4A574; }
-.uge-job {
-  text-align: left;
-  background: #1a1a1a;
-  border: none;
-  border-left: 3px solid #C4A574;
-  border-radius: 12px;
-  padding: 0.95rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  color: #F3EDE4;
-  cursor: pointer;
-  font-family: inherit;
-  touch-action: manipulation;
-}
-.uge-job strong { font-size: 1.05rem; }
-.uge-job span { opacity: 0.9; font-size: 0.95rem; }
-.uge-ledig {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-  min-height: 72px;
-  border: 1.5px dashed #C4A574;
-  border-radius: 12px;
-  color: #C4A574;
-  font-weight: 700;
-  background: transparent;
-}
-.uge-note {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 1.75rem 0 0;
-  color: #8a857c;
-  font-size: 0.88rem;
-}
-
-/* Sager / Mere */
-.sager-list, .mere-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
+/* Mere */
 .mere-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   position: relative;
   z-index: 5;
   touch-action: manipulation;
   pointer-events: auto;
 }
-.sager-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  text-align: left;
-  background: #161616;
-  border: 1px solid #2a2a2a;
-  border-radius: 16px;
-  padding: 1.05rem 1.1rem;
-  color: #F3EDE4;
-  text-decoration: none;
-  font: inherit;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-a.sager-card:hover { text-decoration: none; border-color: #C4A574; }
 .mere-row {
   display: flex;
   align-items: center;
@@ -1275,29 +1124,6 @@ a.field-tab:hover { text-decoration: none; }
 
 .no-swipe { touch-action: manipulation; }
 
-.naeste-addr-btn {
-  display: block;
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.naeste-live {
-  margin: 0.55rem 0 0;
-  color: #C4A574;
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: 0.01em;
-}
-.naeste-closed { color: #F3EDE4; }
-.sag-chip-live .sag-chip-dot {
-  background: #C4A574;
-  box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.25);
-}
 .sag-closed-note {
   text-align: center;
   color: #F3EDE4;
@@ -1347,13 +1173,6 @@ a.field-tab:hover { text-decoration: none; }
   margin-top: 0.15rem;
 }
 
-/* Phone: tablet-only blocks hidden; idag stacks naturally */
-.idag-layout { display: block; }
-.uge-tablet-grid { display: none; }
-.uge-phone { display: block; }
-.sager-split { display: block; }
-.sager-detail-pane { display: none; }
-
 .sag-screen-embedded {
   min-height: 0;
   height: 100%;
@@ -1382,90 +1201,6 @@ a.field-tab:hover { text-decoration: none; }
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
-
-  /* I dag: large case card left, rest of day right */
-  .idag-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-    gap: 1.5rem;
-    align-items: start;
-  }
-  .idag-layout .naeste-card {
-    margin-bottom: 0;
-  }
-  .idag-layout .rest-list {
-    background: #121212;
-    border: 1px solid #2a2a2a;
-    border-radius: 16px;
-    padding: 0.35rem 1rem;
-  }
-  .idag-layout .rest-row:first-child {
-    border-top: none;
-  }
-  .idag-layout .rest-row:last-child {
-    border-bottom: none;
-  }
-
-  /* Uge: four days side by side (tir–fre) */
-  .uge-phone {
-    display: none;
-  }
-  .uge-tablet-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.85rem;
-    align-items: start;
-  }
-  .uge-day-title {
-    margin: 0 0 0.75rem;
-    font-family: var(--font-serif), Georgia, serif;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #C4A574;
-    text-align: center;
-  }
-  .uge-day-col .uge-ledig {
-    min-height: 64px;
-    font-size: 0.85rem;
-    padding: 0.5rem;
-    text-align: center;
-  }
-  .uge-day-col .uge-job {
-    padding: 0.75rem 0.7rem;
-  }
-  .uge-day-col .uge-job strong {
-    font-size: 0.95rem;
-  }
-  .uge-day-col .uge-job span {
-    font-size: 0.85rem;
-  }
-
-  /* Sager: list left, sag detail right */
-  .sager-split {
-    display: grid;
-    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.35fr);
-    gap: 1rem;
-    align-items: stretch;
-    min-height: calc(100% - 5rem);
-  }
-  .sager-list-pane {
-    min-width: 0;
-  }
-  .sager-detail-pane {
-    display: block;
-    min-width: 0;
-    background: #101010;
-    border: 1px solid #2a2a2a;
-    border-radius: 16px;
-    overflow: auto;
-    max-height: calc(100dvh - 8rem - 1cm - env(safe-area-inset-bottom, 0px));
-  }
-  .sager-card-active {
-    border-color: #C4A574;
-  }
-  .sager-scroll > .field-header {
-    margin-bottom: 1rem;
-  }
 }
 
 @media (min-width: 1024px) {
@@ -1473,19 +1208,7 @@ a.field-tab:hover { text-decoration: none; }
     padding-left: 2rem;
     padding-right: 2rem;
   }
-  .idag-layout {
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-    gap: 2rem;
-  }
-  .uge-tablet-grid {
-    gap: 1.15rem;
-  }
-  .sager-split {
-    grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.4fr);
-    gap: 1.25rem;
-  }
 }
-
 .cam-top-actions {
   display: flex;
   align-items: center;
