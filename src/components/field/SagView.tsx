@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import CameraCapture from "@/components/CameraCapture";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import { api } from "@/lib/client";
-import { alignAfterToBefore } from "@/lib/alignImages";
+import { alignAfterToBefore } from "@/lib/eccAlign";
 import { DEMO_NEXT } from "@/lib/fieldDemo";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 import type { ImageType, ProjectImage } from "@/lib/types";

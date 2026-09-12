@@ -16,7 +16,7 @@ import type { ImageType, Project, ProjectImage } from "@/lib/types";
 import CameraCapture from "@/components/CameraCapture";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import DeleteProjectButton from "@/components/DeleteProjectButton";
-import { alignAfterToBefore } from "@/lib/alignImages";
+import { alignAfterToBefore } from "@/lib/eccAlign";
 
 type Img = ProjectImage & {
   url: string;
