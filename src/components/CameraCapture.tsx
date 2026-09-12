@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Kamera: 3x3 gitter + vaterpas + ghost (overlayUrl) + fuld frame capture.
- * Overlay: Vis før toggle, ~40–50% transparent — not a dark scrim.
+ * Kamera: onion-skin før-overlay + valgfri HUD (gitter/kors/vaterpas).
+ * Capture = KUN rent kamerabillede — overlay/HUD aldrig i JPEG.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -16,7 +16,7 @@ type Props = {
 
 type Level = "green" | "yellow" | "red" | "off";
 
-const DEFAULT_OVERLAY_OPACITY = 0.45;
+const DEFAULT_OVERLAY_OPACITY = 0.35;
 
 function levelFromAngles(gamma: number | null, beta: number | null): Level {
   if (gamma == null || beta == null || Number.isNaN(gamma) || Number.isNaN(beta)) {
@@ -29,6 +29,21 @@ function levelFromAngles(gamma: number | null, beta: number | null): Level {
   return "red";
 }
 
+async function lockZoomIfPossible(track: MediaStreamTrack) {
+  const caps = track.getCapabilities?.() as
+    | (MediaTrackCapabilities & { zoom?: { min: number; max: number } })
+    | undefined;
+  if (!caps || caps.zoom == null) return;
+  const zoom = typeof caps.zoom === "object" ? caps.zoom.min : 1;
+  try {
+    await track.applyConstraints({
+      advanced: [{ zoom } as MediaTrackConstraintSet],
+    });
+  } catch {
+    /* Safari/Chrome may ignore */
+  }
+}
+
 export default function CameraCapture({
   open,
   title,
@@ -37,7 +52,6 @@ export default function CameraCapture({
   onClose,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
@@ -47,6 +61,7 @@ export default function CameraCapture({
   const [confirmSkew, setConfirmSkew] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayOpacity, setOverlayOpacity] = useState(DEFAULT_OVERLAY_OPACITY);
+  const [showHud, setShowHud] = useState(true);
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -69,6 +84,8 @@ export default function CameraCapture({
         },
       });
       streamRef.current = stream;
+      const track = stream.getVideoTracks()[0];
+      if (track) void lockZoomIfPossible(track);
       const video = videoRef.current;
       if (video) {
         video.srcObject = stream;
@@ -90,12 +107,13 @@ export default function CameraCapture({
     }
     setShowOverlay(true);
     setOverlayOpacity(DEFAULT_OVERLAY_OPACITY);
+    setShowHud(true);
     void startStream();
     return () => stopStream();
   }, [open, startStream, stopStream]);
 
   useEffect(() => {
-    if (!open || usingNative) {
+    if (!open || usingNative || !showHud) {
       setLevel("off");
       return;
     }
@@ -129,9 +147,9 @@ export default function CameraCapture({
 
     void bind();
     return () => window.removeEventListener("deviceorientation", onOrient, true);
-  }, [open, usingNative]);
+  }, [open, usingNative, showHud]);
 
-  /** Full camera frame — never a thumbnail or display-size center crop. */
+  /** Full camera frame only — never overlay, grid, or text. */
   function captureFullFrame() {
     const video = videoRef.current;
     if (!video || !ready) return null;
@@ -164,7 +182,7 @@ export default function CameraCapture({
 
   function shutter() {
     if (!ready) return;
-    if (level === "red" && !confirmSkew) {
+    if (showHud && level === "red" && !confirmSkew) {
       setConfirmSkew(true);
       return;
     }
@@ -197,13 +215,23 @@ export default function CameraCapture({
     <div className="cam-fullscreen" role="dialog" aria-modal="true" aria-label={title}>
       <div className="cam-top">
         <span className="cam-title">{title}</span>
-        <button type="button" className="cam-close" onClick={onClose}>
-          Luk
-        </button>
+        <div className="cam-top-actions">
+          <button
+            type="button"
+            className={"cam-hud-toggle" + (showHud ? " is-on" : "")}
+            aria-pressed={showHud}
+            onClick={() => setShowHud((v) => !v)}
+          >
+            HUD
+          </button>
+          <button type="button" className="cam-close" onClick={onClose}>
+            Luk
+          </button>
+        </div>
       </div>
 
       {!usingNative ? (
-        <div className="cam-stage" ref={stageRef}>
+        <div className="cam-stage">
           <video
             ref={videoRef}
             className="cam-video"
@@ -220,16 +248,29 @@ export default function CameraCapture({
               style={{ opacity: overlayOpacity }}
             />
           ) : null}
-          <div className="cam-grid" aria-hidden="true">
-            <span className="cam-grid-v" style={{ left: "33.333%" }} />
-            <span className="cam-grid-v" style={{ left: "66.666%" }} />
-            <span className="cam-grid-h" style={{ top: "33.333%" }} />
-            <span className="cam-grid-h" style={{ top: "66.666%" }} />
-          </div>
-          <div className={"cam-level cam-level-" + level} aria-live="polite">
-            <span className="cam-level-dot" />
-            <span>{levelLabel}</span>
-          </div>
+          {showHud ? (
+            <>
+              <div className="cam-grid" aria-hidden="true">
+                <span className="cam-grid-v" style={{ left: "33.333%" }} />
+                <span className="cam-grid-v" style={{ left: "66.666%" }} />
+                <span className="cam-grid-h" style={{ top: "33.333%" }} />
+                <span className="cam-grid-h" style={{ top: "66.666%" }} />
+              </div>
+              <div className="cam-cross" aria-hidden="true">
+                <span className="cam-cross-h" />
+                <span className="cam-cross-v" />
+              </div>
+              <div className={"cam-level cam-level-" + level} aria-live="polite">
+                <span className="cam-level-dot" />
+                <span>{levelLabel}</span>
+              </div>
+            </>
+          ) : null}
+          {hasOverlay ? (
+            <p className="cam-onion-hint">
+              Siges efter ind over før-billedet. Flyt dig til samme sted.
+            </p>
+          ) : null}
           {!ready && !error ? (
             <p className="cam-hint">Åbner kamera…</p>
           ) : null}
@@ -266,7 +307,7 @@ export default function CameraCapture({
                   <span className="cam-overlay-slider-label">Styrke</span>
                   <input
                     type="range"
-                    min={0.2}
+                    min={0.1}
                     max={0.7}
                     step={0.05}
                     value={overlayOpacity}
@@ -287,9 +328,15 @@ export default function CameraCapture({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={overlayUrl} alt="Før (reference)" className="cam-native-ref" />
           ) : null}
-          <p className="hint" style={{ textAlign: "center", maxWidth: 280 }}>
-            Gitter og vaterpas virker i live-kamera. Hvis iPhone åbner systemkameraet, sigt efter samme kanter som før-billedet.
-          </p>
+          {overlayUrl ? (
+            <p className="hint" style={{ textAlign: "center", maxWidth: 280 }}>
+              Siges efter ind over før-billedet. Flyt dig til samme sted.
+            </p>
+          ) : (
+            <p className="hint" style={{ textAlign: "center", maxWidth: 280 }}>
+              Gitter og vaterpas virker i live-kamera. Hvis iPhone åbner systemkameraet, sigt efter samme kanter som før-billedet.
+            </p>
+          )}
           <button
             type="button"
             className="btn btn-primary cam-native-btn"

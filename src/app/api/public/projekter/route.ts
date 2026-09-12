@@ -42,6 +42,12 @@ async function toPublicItem(project: Project, pct: number, origin: string) {
   const showPrice = !!project.show_price_on_site;
   const adjusted = showPrice ? adjustPrice(project.price_from, pct) : null;
   const label = priceFromLabel(project.price_from, pct, showPrice);
+  // Slider uses aligned efter when present (same framing as før)
+  const afterForSlider =
+    (after as { sliderUrl?: string; alignedUrl?: string | null; url: string } | undefined)
+      ?.sliderUrl ||
+    (after as { alignedUrl?: string | null } | undefined)?.alignedUrl ||
+    after?.url;
 
   return {
     id: project.id,
@@ -51,7 +57,8 @@ async function toPublicItem(project: Project, pct: number, origin: string) {
     price_from: adjusted,
     priceLabel: label,
     beforeUrl: absoluteUrl(before?.url ?? null, origin),
-    afterUrl: absoluteUrl(after?.url ?? null, origin),
+    afterUrl: absoluteUrl(afterForSlider ?? null, origin),
+    afterOriginalUrl: absoluteUrl(after?.url ?? null, origin),
     published_at: project.published_at,
   };
 }

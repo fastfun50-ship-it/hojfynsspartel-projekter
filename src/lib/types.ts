@@ -64,6 +64,8 @@ export type ProjectImage = {
   project_id: string;
   type: ImageType;
   path: string;
+  /** Aligned efter (slider). Null/absent for foer/under or legacy rows. */
+  aligned_path?: string | null;
   width: number | null;
   height: number | null;
   created_by: string;

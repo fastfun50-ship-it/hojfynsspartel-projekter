@@ -64,6 +64,11 @@ export function withPublicUrls(images: ProjectImage[]) {
   return images.map((img) => ({
     ...img,
     url: publicImageUrl(img.path),
+    /** Prefer aligned efter for slider when present. */
+    alignedUrl: img.aligned_path ? publicImageUrl(img.aligned_path) : null,
+    sliderUrl: img.aligned_path
+      ? publicImageUrl(img.aligned_path)
+      : publicImageUrl(img.path),
   }));
 }
 

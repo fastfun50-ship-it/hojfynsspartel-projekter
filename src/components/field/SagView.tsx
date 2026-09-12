@@ -3,13 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CameraCapture from "@/components/CameraCapture";
+import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import { api } from "@/lib/client";
+import { alignAfterToBefore } from "@/lib/alignImages";
 import { DEMO_NEXT } from "@/lib/fieldDemo";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 import type { ImageType, ProjectImage } from "@/lib/types";
 import { IconCam, IconCheck, IconClock, IconMic, IconWave } from "./FieldIcons";
 
-type Img = ProjectImage & { url: string };
+type Img = ProjectImage & {
+  url: string;
+  alignedUrl?: string | null;
+  sliderUrl?: string;
+};
 
 type Props = {
   mode: "demo" | "project";
@@ -50,6 +56,7 @@ export default function SagView({
   const [activeType, setActiveType] = useState<ImageType>("foer");
   const [busyUpload, setBusyUpload] = useState(false);
   const [error, setError] = useState("");
+  const [alignHint, setAlignHint] = useState("");
   const [localFoer, setLocalFoer] = useState<string | null>(null);
   const [localEfter, setLocalEfter] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -101,7 +108,11 @@ export default function SagView({
   );
 
   const foerUrl = latestFoer?.url || localFoer;
-  const efterUrl = latestEfter?.url || localEfter;
+  const efterUrl =
+    latestEfter?.sliderUrl ||
+    latestEfter?.alignedUrl ||
+    latestEfter?.url ||
+    localEfter;
 
   function openCamera(prefer: ImageType) {
     let next: ImageType = prefer;
@@ -114,17 +125,35 @@ export default function SagView({
   async function onCapture(file: File) {
     setCameraOpen(false);
     setError("");
+    setAlignHint("");
     const url = URL.createObjectURL(file);
     if (activeType === "foer") setLocalFoer(url);
     else setLocalEfter(url);
 
-    if (mode !== "project" || !projectId) return;
+    if (mode !== "project" || !projectId) {
+      // Demo: still try local align preview for efter
+      if (activeType === "efter" && foerUrl) {
+        try {
+          const aligned = await alignAfterToBefore(foerUrl, file);
+          setLocalEfter(URL.createObjectURL(aligned.alignedFile));
+          if (!aligned.ok && aligned.message) setAlignHint(aligned.message);
+        } catch {
+          /* keep raw */
+        }
+      }
+      return;
+    }
 
     setBusyUpload(true);
     try {
       const fd = new FormData();
       fd.append("type", activeType);
       fd.append("file", file);
+      if (activeType === "efter" && foerUrl) {
+        const aligned = await alignAfterToBefore(foerUrl, file);
+        fd.append("aligned", aligned.alignedFile);
+        if (!aligned.ok && aligned.message) setAlignHint(aligned.message);
+      }
       const data = await api<{ images: Img[] }>(
         "/api/projects/" + projectId + "/images",
         { method: "POST", body: fd },
@@ -262,6 +291,14 @@ export default function SagView({
           Tag foto
         </button>
       </section>
+
+      {alignHint ? <p className="hint align-soft-warn">{alignHint}</p> : null}
+
+      {foerUrl && efterUrl ? (
+        <section className="sag-ba">
+          <BeforeAfterSlider beforeUrl={foerUrl} afterUrl={efterUrl} />
+        </section>
+      ) : null}
 
       <div className="sag-voice" aria-hidden>
         <div className="sag-voice-left">

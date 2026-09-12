@@ -39,6 +39,7 @@ export async function POST(req: Request, ctx: Ctx) {
   const form = await req.formData();
   const type = String(form.get("type") || "") as ImageType;
   const file = form.get("file");
+  const aligned = form.get("aligned");
 
   if (!IMAGE_TYPES.includes(type)) {
     return NextResponse.json({ error: "Ugyldig fototype" }, { status: 400 });
@@ -60,23 +61,46 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   try {
-  const imageId = randomUUID();
-  const stored = await processAndStoreImage(id, imageId, buf);
-  const now = new Date().toISOString();
-  const db = await getDb();
-  await db.run(
-    "INSERT INTO images (id, project_id, type, path, width, height, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-    [imageId, id, type, stored.path, stored.width, stored.height, user.id, now],
-  );
-  await db.run("UPDATE projects SET updated_at = ? WHERE id = ?", [now, id]);
+    const imageId = randomUUID();
+    const stored = await processAndStoreImage(id, imageId, buf);
 
-  const images = withPublicUrls(await getProjectImages(id));
-  const image = images.find((i) => i.id === imageId);
-  return NextResponse.json({ image, images }, { status: 201 });
+    let alignedPath: string | null = null;
+    if (type === "efter" && aligned instanceof File && aligned.size > 0) {
+      const alignedBuf = Buffer.from(await aligned.arrayBuffer());
+      if (alignedBuf.length > 0) {
+        const alignedStored = await processAndStoreImage(
+          id,
+          imageId + "-aligned",
+          alignedBuf,
+        );
+        alignedPath = alignedStored.path;
+      }
+    }
+
+    const now = new Date().toISOString();
+    const db = await getDb();
+    await db.run(
+      "INSERT INTO images (id, project_id, type, path, aligned_path, width, height, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        imageId,
+        id,
+        type,
+        stored.path,
+        alignedPath,
+        stored.width,
+        stored.height,
+        user.id,
+        now,
+      ],
+    );
+    await db.run("UPDATE projects SET updated_at = ? WHERE id = ?", [now, id]);
+
+    const images = withPublicUrls(await getProjectImages(id));
+    const image = images.find((i) => i.id === imageId);
+    return NextResponse.json({ image, images }, { status: 201 });
   } catch (e) {
     console.error(e);
     const detail = String((e as { message?: unknown })?.message ?? e);
     return NextResponse.json({ error: "Upload fejlede", detail }, { status: 500 });
   }
 }
-

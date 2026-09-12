@@ -14,9 +14,15 @@ import { adjustPrice, formatKr } from "@/lib/prices";
 import { saveLastAction } from "@/lib/lastAction";
 import type { ImageType, Project, ProjectImage } from "@/lib/types";
 import CameraCapture from "@/components/CameraCapture";
+import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import DeleteProjectButton from "@/components/DeleteProjectButton";
+import { alignAfterToBefore } from "@/lib/alignImages";
 
-type Img = ProjectImage & { url: string };
+type Img = ProjectImage & {
+  url: string;
+  alignedUrl?: string | null;
+  sliderUrl?: string;
+};
 type Firm = { global_prisjustering_procent: number };
 
 export default function ProjectDetailClient({
@@ -43,6 +49,7 @@ export default function ProjectDetailClient({
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const [firm, setFirm] = useState<Firm | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const [alignHint, setAlignHint] = useState("");
 
   const latestFoer = useMemo(
     () => [...images].filter((i) => i.type === "foer").at(-1),
@@ -115,10 +122,20 @@ export default function ProjectDetailClient({
     if (!pendingFile) return;
     setBusy(true);
     setError("");
+    setAlignHint("");
     try {
       const fd = new FormData();
       fd.append("type", activeType);
       fd.append("file", pendingFile);
+
+      if (activeType === "efter" && latestFoer?.url) {
+        const aligned = await alignAfterToBefore(latestFoer.url, pendingFile);
+        fd.append("aligned", aligned.alignedFile);
+        if (!aligned.ok && aligned.message) {
+          setAlignHint(aligned.message);
+        }
+      }
+
       const data = await api<{ images: Img[] }>(
         "/api/projects/" + project.id + "/images",
         { method: "POST", body: fd },
@@ -282,6 +299,7 @@ export default function ProjectDetailClient({
       ) : null}
 
       {error ? <div className="error">{error}</div> : null}
+      {alignHint ? <p className="hint align-soft-warn">{alignHint}</p> : null}
 
       {pendingUrl ? (
         <div className="stack review-panel">
@@ -378,6 +396,19 @@ export default function ProjectDetailClient({
           </div>
         );
       })}
+
+      {(() => {
+        const foer = [...images].filter((i) => i.type === "foer").at(-1);
+        const efter = [...images].filter((i) => i.type === "efter").at(-1);
+        if (!foer || !efter) return null;
+        const afterSlider = efter.sliderUrl || efter.alignedUrl || efter.url;
+        return (
+          <div className="card stack">
+            <strong>Før / efter</strong>
+            <BeforeAfterSlider beforeUrl={foer.url} afterUrl={afterSlider} />
+          </div>
+        );
+      })()}
 
       {isAdmin ? (
         <details className="edit-fold">

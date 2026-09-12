@@ -33,6 +33,9 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   }
 
   await deleteStoredImage(image.path);
+  if (image.aligned_path) {
+    await deleteStoredImage(image.aligned_path);
+  }
   await db.run("DELETE FROM images WHERE id = ?", [imageId]);
   await db.run("UPDATE projects SET updated_at = ? WHERE id = ?", [new Date().toISOString(), id]);
 

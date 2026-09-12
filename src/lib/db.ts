@@ -66,6 +66,7 @@ const SCHEMA_STATEMENTS = [
     project_id TEXT NOT NULL,
     type TEXT NOT NULL,
     path TEXT NOT NULL,
+    aligned_path TEXT,
     width INTEGER,
     height INTEGER,
     created_by TEXT NOT NULL,
@@ -181,6 +182,12 @@ class SqlJsDb implements Db {
 async function applySchema(db: Db) {
   for (const sql of SCHEMA_STATEMENTS) {
     await db.run(sql);
+  }
+  // Soft migration: aligned efter for slider (ignore if column already exists)
+  try {
+    await db.run("ALTER TABLE images ADD COLUMN aligned_path TEXT");
+  } catch {
+    /* already present */
   }
 }
 
