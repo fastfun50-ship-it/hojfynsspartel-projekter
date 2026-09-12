@@ -4,7 +4,8 @@ import { hasRole } from "@/lib/constants";
 import { listProjectsForFirm, listRoomsForProject } from "@/lib/projects";
 import { sumRoomAreas } from "@/lib/rooms";
 import { logoutAction } from "./actions";
-import FieldShell, { mapProjectsToJobs } from "@/components/field/FieldShell";
+import FieldShell from "@/components/field/FieldShell";
+import { mapProjectsToJobs } from "@/lib/mapProjectsToJobs";
 
 export const dynamic = "force-dynamic";
 

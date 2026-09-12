@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter, useSearchParams } from "next/navigation";
 import { FIELD_TABS, type FieldTabId } from "@/lib/fieldDemo";
 import { api } from "@/lib/client";
-import { inferFieldStatus } from "@/lib/fieldStatus";
 import { sumRoomAreas, type RoomRow } from "@/lib/rooms";
 import JobPage, { type JobListItem } from "./JobPage";
 import RumPage from "./RumPage";
@@ -326,45 +325,5 @@ export default function FieldShell({
       </nav>
     </div>
   );
-}
-
-export function mapProjectsToJobs(
-  projects: Array<{
-    id: string;
-    title: string;
-    status: string;
-    field_status?: string | null;
-    customer_name?: string | null;
-    city?: string | null;
-    phone?: string | null;
-    note?: string | null;
-    updated_at: string;
-    roomCount?: number;
-    totalKvm?: number | null;
-  }>,
-): JobListItem[] {
-  return projects.map((p) => {
-    let customer = p.customer_name || "";
-    let city = p.city || "";
-    if (!customer && p.note) {
-      const m = p.note.match(/Navn:\s*(.+)/);
-      if (m) customer = m[1].trim();
-    }
-    if (!city && p.note) {
-      const m = p.note.match(/By:\s*(.+)/);
-      if (m) city = m[1].trim();
-    }
-    return {
-      id: p.id,
-      title: p.title,
-      customerName: customer || p.title,
-      city,
-      fieldStatus: inferFieldStatus(p.field_status, p.status),
-      roomCount: p.roomCount ?? 0,
-      totalKvm: p.totalKvm ?? null,
-      updatedAt: p.updated_at,
-      phone: p.phone ?? null,
-    };
-  });
 }
 
