@@ -9,6 +9,7 @@ import {
   wallAreaM2,
   type RoomRow,
 } from "@/lib/rooms";
+import { IconCam } from "./FieldIcons";
 
 type Props = {
   jobId: string | null;
@@ -18,6 +19,8 @@ type Props = {
   onRoomsChange: (rooms: RoomRow[]) => void;
   onActiveRoom: (id: string) => void;
   onNeedJob: () => void;
+  /** Opens existing FotoPage / CameraCapture flow for active room. */
+  onOpenFoto: () => void;
 };
 
 function DimField({
@@ -54,6 +57,7 @@ export default function RumPage({
   onRoomsChange,
   onActiveRoom,
   onNeedJob,
+  onOpenFoto,
 }: Props) {
   const room =
     rooms.find((r) => r.id === activeRoomId) || rooms[0] || null;
@@ -201,23 +205,34 @@ export default function RumPage({
         </button>
       </header>
 
-      {rooms.length > 1 ? (
+      <div className="rum-pills-row">
         <div className="rum-pills">
-          {rooms.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              className={
-                "rum-pill no-swipe" +
-                ((room?.id || activeRoomId) === r.id ? " rum-pill-active" : "")
-              }
-              onClick={() => onActiveRoom(r.id)}
-            >
-              {r.name}
-            </button>
-          ))}
+          {rooms.length > 1
+            ? rooms.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={
+                    "rum-pill no-swipe" +
+                    ((room?.id || activeRoomId) === r.id ? " rum-pill-active" : "")
+                  }
+                  onClick={() => onActiveRoom(r.id)}
+                >
+                  {r.name}
+                </button>
+              ))
+            : null}
         </div>
-      ) : null}
+        <button
+          type="button"
+          className="rum-cam-btn no-swipe"
+          onClick={onOpenFoto}
+          aria-label="Tag foto"
+          title="Foto"
+        >
+          <IconCam size={22} />
+        </button>
+      </div>
 
       {error ? <div className="error">{error}</div> : null}
 

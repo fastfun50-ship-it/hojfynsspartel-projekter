@@ -17,13 +17,15 @@ function activeTab(pathname: string | null, tabParam: string | null): FieldTabId
   if (pathname === "/app") {
     if (
       tabParam === "rum" ||
-      tabParam === "foto" ||
+      tabParam === "materialer" ||
       tabParam === "resultat" ||
       tabParam === "mere" ||
       tabParam === "job"
     ) {
       return tabParam;
     }
+    // Camera flow (opened from Rum) — highlight Rum in chrome nav
+    if (tabParam === "foto") return "rum";
     if (tabParam === "idag" || tabParam === "uge" || tabParam === "sager") return "job";
     return "job";
   }
@@ -63,7 +65,7 @@ export default function AppChrome({ userName, children }: Props) {
               className={
                 "field-tab" +
                 (tab === t.id ? " field-tab-active" : "") +
-                (t.id === "foto" ? " field-tab-foto" : "")
+                (t.id === "materialer" ? " field-tab-center" : "")
               }
             >
               <span>{t.label}</span>

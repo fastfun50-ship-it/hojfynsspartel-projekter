@@ -83,6 +83,40 @@ export function IconTabFoto({ size = 26 }: { size?: number }) {
   );
 }
 
+/** Bucket + paint roller — Materialer center tab (not camera). */
+export function IconTabMaterialer({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4.5 10.5h9.5a1 1 0 0 1 1 1V14a3.5 3.5 0 0 1-3.5 3.5h-4A3.5 3.5 0 0 1 3.5 14v-2.5a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10.5V8.2c0-.7.45-1.3 1.1-1.5L14 5l.8 2.8"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.5 8.5l4.2-1.2c.55-.15 1.1.3 1.05.86l-.35 4.2a1 1 0 0 1-.7.85L16.5 14"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.2 9.2l1.6 4.2"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function IconTabResultat({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>

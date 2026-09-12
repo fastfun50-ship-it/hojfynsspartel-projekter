@@ -1362,7 +1362,7 @@ a.field-tab:hover { text-decoration: none; }
   margin: 0.75rem 0 0.25rem;
 }
 
-/* ========== 5-tab Job / Rum / Foto / Resultat / Mere (look-lock) ========== */
+/* ========== 5-tab Job / Rum / Materialer / Resultat / Mere (look-lock) ========== */
 .field-main {
   flex: 1;
   min-height: 0;
@@ -1380,6 +1380,7 @@ a.field-tab:hover { text-decoration: none; }
   line-height: 0;
   color: inherit;
 }
+.field-tab-center .field-tab-icon,
 .field-tab-foto .field-tab-icon {
   transform: scale(1.18);
   margin-top: -2px;
@@ -1514,6 +1515,55 @@ a.field-tab:hover { text-decoration: none; }
   scrollbar-width: none;
 }
 .rum-pills::-webkit-scrollbar { display: none; }
+.rum-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.rum-pills-row .rum-pills {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.rum-cam-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #C4A574;
+  background: #161616;
+  color: #C4A574;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  padding: 0;
+}
+.rum-cam-btn:active {
+  background: #1f1f1f;
+}
+.materialer-placeholder {
+  margin-top: 1.25rem;
+  padding: 1.25rem 1.1rem;
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  color: #F3EDE4;
+}
+.materialer-placeholder-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #C4A574;
+}
+.materialer-placeholder-copy {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  opacity: 0.9;
+}
 .rum-pill {
   flex-shrink: 0;
   border: 1px solid #2a2a2a;

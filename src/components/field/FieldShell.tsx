@@ -2,18 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FIELD_TABS, type FieldTabId } from "@/lib/fieldDemo";
+import {
+  FIELD_TABS,
+  type FieldTabId,
+  type FieldViewId,
+} from "@/lib/fieldDemo";
 import { api } from "@/lib/client";
 import { sumRoomAreas, type RoomRow } from "@/lib/rooms";
 import JobPage, { type JobListItem } from "./JobPage";
 import RumPage from "./RumPage";
 import FotoPage from "./FotoPage";
+import MaterialerPage from "./MaterialerPage";
 import ResultatPage from "./ResultatPage";
 import MerePage from "./MerePage";
 import {
   IconTabJob,
   IconTabRum,
-  IconTabFoto,
+  IconTabMaterialer,
   IconTabResultat,
   IconTabMere,
 } from "./FieldIcons";
@@ -27,13 +32,14 @@ type Props = {
 const LS_JOB = "hfs.activeJobId";
 const LS_ROOM = "hfs.activeRoomId";
 
-function tabFromParam(raw: string | null): FieldTabId {
+function viewFromParam(raw: string | null): FieldViewId {
   if (
     raw === "job" ||
     raw === "rum" ||
-    raw === "foto" ||
+    raw === "materialer" ||
     raw === "resultat" ||
-    raw === "mere"
+    raw === "mere" ||
+    raw === "foto"
   ) {
     return raw;
   }
@@ -45,7 +51,7 @@ function tabFromParam(raw: string | null): FieldTabId {
 const TAB_ICONS: Record<FieldTabId, ReactNode> = {
   job: <IconTabJob />,
   rum: <IconTabRum />,
-  foto: <IconTabFoto />,
+  materialer: <IconTabMaterialer />,
   resultat: <IconTabResultat />,
   mere: <IconTabMere />,
 };
@@ -57,7 +63,7 @@ export default function FieldShell({
 }: Props) {
   const router = useRouter();
   const search = useSearchParams();
-  const [tab, setTab] = useState<FieldTabId>(tabFromParam(search.get("tab")));
+  const [tab, setTab] = useState<FieldViewId>(viewFromParam(search.get("tab")));
   const [jobs, setJobs] = useState<JobListItem[]>(initialJobs);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
@@ -76,7 +82,7 @@ export default function FieldShell({
   }, [initialJobs]);
 
   useEffect(() => {
-    const t = tabFromParam(search.get("tab"));
+    const t = viewFromParam(search.get("tab"));
     setTab(t);
     const jobQ = search.get("job");
     if (jobQ) setActiveJobId(jobQ);
@@ -152,12 +158,16 @@ export default function FieldShell({
     activeJob?.title ||
     "Job";
 
-  function goTab(id: FieldTabId) {
+  function goView(id: FieldViewId) {
     setTab(id);
     const q = new URLSearchParams();
     q.set("tab", id);
     if (activeJobId) q.set("job", activeJobId);
     router.replace("/app?" + q.toString(), { scroll: false });
+  }
+
+  function goTab(id: FieldTabId) {
+    goView(id);
   }
 
   function selectJob(id: string) {
@@ -240,6 +250,9 @@ export default function FieldShell({
     finishRoomSwipe(e.clientX - sx);
   }
 
+  const navActive: FieldTabId | null =
+    tab === "foto" ? "rum" : tab === "materialer" || tab === "job" || tab === "rum" || tab === "resultat" || tab === "mere" ? tab : null;
+
   return (
     <div className="field-root">
       <div className="field-main">
@@ -261,6 +274,7 @@ export default function FieldShell({
             onRoomsChange={onRoomsChange}
             onActiveRoom={setActiveRoomId}
             onNeedJob={() => goTab("job")}
+            onOpenFoto={() => goView("foto")}
           />
         ) : null}
         {tab === "foto" ? (
@@ -271,6 +285,13 @@ export default function FieldShell({
             onActiveRoom={setActiveRoomId}
             onNeedJob={() => goTab("job")}
             onNeedRoom={() => goTab("rum")}
+          />
+        ) : null}
+        {tab === "materialer" ? (
+          <MaterialerPage
+            jobId={activeJobId}
+            jobName={jobName}
+            onNeedJob={() => goTab("job")}
           />
         ) : null}
         {tab === "resultat" ? (
@@ -312,18 +333,17 @@ export default function FieldShell({
             type="button"
             className={
               "field-tab no-swipe" +
-              (tab === t.id ? " field-tab-active" : "") +
-              (t.id === "foto" ? " field-tab-foto" : "")
+              (navActive === t.id ? " field-tab-active" : "") +
+              (t.id === "materialer" ? " field-tab-center" : "")
             }
             onClick={() => goTab(t.id)}
           >
             <span className="field-tab-icon">{TAB_ICONS[t.id]}</span>
             <span>{t.label}</span>
-            {tab === t.id ? <span className="field-tab-line" /> : null}
+            {navActive === t.id ? <span className="field-tab-line" /> : null}
           </button>
         ))}
       </nav>
     </div>
   );
 }
-
